@@ -19,7 +19,6 @@ MAX_ENTRIES = 5  # max entries per feed check
 # ====== DATABASE SETUP ======
 db = sqlite3.connect("rss_multi_bot.db", check_same_thread=False)
 db.execute("PRAGMA journal_mode=WAL")  # Better concurrent access
-cur = db.cursor()
 
 # Schema creation with same structure as original
 for table in [
@@ -32,37 +31,37 @@ db.commit()
 
 # ====== DB HELPERS ======
 def add_feed(token: str, url: str) -> None:
-    cur.execute("INSERT OR IGNORE INTO feeds (token, url) VALUES (?, ?)", (token, url))
-    db.commit()
+    with db:
+        db.execute("INSERT OR IGNORE INTO feeds (token, url) VALUES (?, ?)", (token, url))
 
 def get_feeds(token: str) -> List[str]:
-    cur.execute("SELECT url FROM feeds WHERE token = ?", (token,))
-    return [r[0] for r in cur.fetchall()]
+    with db:
+        return [r[0] for r in db.execute("SELECT url FROM feeds WHERE token = ?", (token,))]
 
 def add_subscriber(token: str, chat_id: int) -> None:
-    cur.execute("INSERT OR IGNORE INTO subscribers (token, chat_id) VALUES (?, ?)", (token, chat_id))
-    db.commit()
+    with db:
+        db.execute("INSERT OR IGNORE INTO subscribers (token, chat_id) VALUES (?, ?)", (token, chat_id))
 
 def remove_subscriber(token: str, chat_id: int) -> None:
-    cur.execute("DELETE FROM subscribers WHERE token = ? AND chat_id = ?", (token, chat_id))
-    db.commit()
+    with db:
+        db.execute("DELETE FROM subscribers WHERE token = ? AND chat_id = ?", (token, chat_id))
 
 def get_subscribers(token: str) -> List[int]:
-    cur.execute("SELECT chat_id FROM subscribers WHERE token = ?", (token,))
-    return [r[0] for r in cur.fetchall()]
+    with db:
+        return [r[0] for r in db.execute("SELECT chat_id FROM subscribers WHERE token = ?", (token,))]
 
 def mark_sent(token: str, link: str) -> None:
-    cur.execute("INSERT OR IGNORE INTO sent_links (token, link) VALUES (?, ?)", (token, link))
-    db.commit()
+    with db:
+        db.execute("INSERT OR IGNORE INTO sent_links (token, link) VALUES (?, ?)", (token, link))
 
 def is_sent(token: str, link: str) -> bool:
-    cur.execute("SELECT 1 FROM sent_links WHERE token = ? AND link = ?", (token, link))
-    return cur.fetchone() is not None
+    with db:
+        return db.execute("SELECT 1 FROM sent_links WHERE token = ? AND link = ?", (token, link)).fetchone() is not None
 
 def cleanup_sent_links(token: str, max_age: int = 24*60*60) -> None:
-    """Remove sent links older than max_age seconds"""
-    cur.execute("DELETE FROM sent_links WHERE token = ? AND EXISTS (SELECT 1 FROM sent_links WHERE token = ? LIMIT -1 OFFSET 1000)", (token, token))
-    db.commit()
+    """Remove old links if there are more than 1000 (just a safety limit)"""
+    with db:
+        db.execute("DELETE FROM sent_links WHERE token = ? AND EXISTS (SELECT 1 FROM sent_links WHERE token = ? LIMIT -1 OFFSET 1000)", (token, token))
 
 # ====== BOT SETUP ======
 class RSSBot:

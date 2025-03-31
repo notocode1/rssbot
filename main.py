@@ -21,8 +21,8 @@ def escape_markdown(text: str, version: int = 2) -> str:
 # ====== CONFIG ======
 OWNER_ID = 6478535414
 BOT_TOKENS = [
-    'YOUR_BOT_TOKEN_1',
-    'YOUR_BOT_TOKEN_2',
+    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
+    '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
 ]
 CHECK_INTERVAL = 60
 MAX_ENTRIES = 5

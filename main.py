@@ -71,8 +71,16 @@ class RSSBot:
         self.bot = telebot.TeleBot(token)
         self.delay_index = delay_index
         self.setup_handlers()
+
+        # 💥 FIX: Remove webhook to allow polling
+        try:
+            self.bot.remove_webhook()
+        except Exception as e:
+            print(f"[BOT {self.token}] Failed to remove webhook: {e}")
+
         threading.Thread(target=self.bot.polling, name=f"poll_{token}", daemon=True).start()
         threading.Thread(target=self.feed_loop, name=f"feeds_{token}", daemon=True).start()
+
 
     def setup_handlers(self) -> None:
         bot = self.bot

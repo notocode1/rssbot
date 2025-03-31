@@ -31,6 +31,13 @@ with db:
         date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS feeds (
+        token TEXT,
+        url TEXT,
+        PRIMARY KEY (token, url)
+    )
+    """)
 
 # ====== DB HELPERS ======
 def save_group(token: str, chat_id: int, title: str, chat_type: str):
@@ -42,6 +49,14 @@ def save_group(token: str, chat_id: int, title: str, chat_type: str):
 def get_groups(token: str) -> List[int]:
     with db:
         return [r[0] for r in db.execute("SELECT chat_id FROM groups WHERE token = ?", (token,))]
+
+def add_feed(token: str, url: str):
+    with db:
+        db.execute("INSERT OR IGNORE INTO feeds (token, url) VALUES (?, ?)", (token, url))
+
+def get_feeds(token: str) -> List[str]:
+    with db:
+        return [r[0] for r in db.execute("SELECT url FROM feeds WHERE token = ?", (token,))]
 
 def extract_image(entry):
     if 'media_content' in entry and entry.media_content:
@@ -89,6 +104,28 @@ class RSSBot:
                 except Exception as e:
                     print(f"[BOT {self.token}] Failed to send broadcast to {chat_id}: {e}")
 
+        @bot.message_handler(commands=['add'])
+        def add_feed_cmd(msg):
+            if msg.from_user.id != OWNER_ID:
+                return
+            parts = msg.text.split(" ", 1)
+            if len(parts) < 2:
+                bot.reply_to(msg, "Usage: /add <rss_url>")
+                return
+            url = parts[1].strip()
+            add_feed(self.token, url)
+            bot.reply_to(msg, "✅ Feed added successfully.")
+
+        @bot.message_handler(commands=['feeds'])
+        def list_feeds_cmd(msg):
+            if msg.from_user.id != OWNER_ID:
+                return
+            feeds = get_feeds(self.token)
+            if not feeds:
+                bot.reply_to(msg, "No feeds found.")
+            else:
+                bot.reply_to(msg, "\n".join(feeds))
+
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):
             save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type)
@@ -98,10 +135,8 @@ class RSSBot:
         seen_links = set()
         while True:
             try:
-                with db:
-                    feeds = db.execute("SELECT url FROM feeds WHERE token = ?", (self.token,)).fetchall()
-                for url_row in feeds:
-                    url = url_row[0]
+                feeds = get_feeds(self.token)
+                for url in feeds:
                     feed = feedparser.parse(url)
                     for entry in feed.entries[:MAX_ENTRIES]:
                         link = entry.get('link')

@@ -10,7 +10,7 @@ from typing import List, Optional
 OWNER_ID = 6478535414  # Replace with your Telegram numeric ID
 BOT_TOKENS = [
     '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
-    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
+    '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
     # Add more tokens as needed
 ]
 CHECK_INTERVAL = 60  # seconds between checks

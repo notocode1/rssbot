@@ -20,14 +20,13 @@ MAX_ENTRIES = 5  # max entries per feed check
 db = sqlite3.connect("rss_multi_bot.db", check_same_thread=False)
 db.execute("PRAGMA journal_mode=WAL")  # Better concurrent access
 
-# Schema creation with same structure as original
-for table in [
-    "CREATE TABLE IF NOT EXISTS feeds (token TEXT, url TEXT, PRIMARY KEY (token, url))",
-    "CREATE TABLE IF NOT EXISTS subscribers (token TEXT, chat_id INTEGER, PRIMARY KEY (token, chat_id))",
-    "CREATE TABLE IF NOT EXISTS sent_links (token TEXT, link TEXT, PRIMARY KEY (token, link))"
-]:
-    cur.execute(table)
-db.commit()
+with db:
+    for table in [
+        "CREATE TABLE IF NOT EXISTS feeds (token TEXT, url TEXT, PRIMARY KEY (token, url))",
+        "CREATE TABLE IF NOT EXISTS subscribers (token TEXT, chat_id INTEGER, PRIMARY KEY (token, chat_id))",
+        "CREATE TABLE IF NOT EXISTS sent_links (token TEXT, link TEXT, PRIMARY KEY (token, link))"
+    ]:
+        db.execute(table)
 
 # ====== DB HELPERS ======
 def add_feed(token: str, url: str) -> None:
@@ -79,7 +78,6 @@ class RSSBot:
 
         threading.Thread(target=self.bot.polling, name=f"poll_{token}", daemon=True).start()
         threading.Thread(target=self.feed_loop, name=f"feeds_{token}", daemon=True).start()
-
 
     def setup_handlers(self) -> None:
         bot = self.bot
@@ -138,7 +136,7 @@ class RSSBot:
                     if feed.bozo:
                         print(f"[BOT {self.token}] Feed error: {feed.bozo_exception}")
                         continue
-                    
+
                     for entry in feed.entries[:MAX_ENTRIES]:
                         if not hasattr(entry, 'link') or not hasattr(entry, 'title'):
                             continue

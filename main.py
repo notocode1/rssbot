@@ -6,12 +6,13 @@ import sqlite3
 from typing import List
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from telebot.util import escape_markdown
 
 # ====== CONFIG ======
 OWNER_ID = 6478535414
 BOT_TOKENS = [
-    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
-    '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
+    'YOUR_BOT_TOKEN_1',
+    'YOUR_BOT_TOKEN_2',
 ]
 CHECK_INTERVAL = 60
 MAX_ENTRIES = 5
@@ -79,7 +80,7 @@ def extract_image(entry):
 class RSSBot:
     def __init__(self, token: str, delay_index: int):
         self.token = token
-        self.bot = telebot.TeleBot(token, parse_mode='Markdown')
+        self.bot = telebot.TeleBot(token, parse_mode='MarkdownV2')
         self.delay_index = delay_index
         self.setup_handlers()
         try:
@@ -140,7 +141,8 @@ class RSSBot:
             if not feeds:
                 bot.reply_to(msg, "No feeds found.", parse_mode=None)
             else:
-                bot.reply_to(msg, "\n".join(feeds), parse_mode=None)
+                feed_list = "\n".join(feeds)
+                bot.send_message(msg.chat.id, feed_list, parse_mode=None, disable_web_page_preview=True)
 
         @bot.message_handler(commands=['alive'])
         def alive_cmd(msg):
@@ -165,10 +167,17 @@ class RSSBot:
                         if not link or link in seen_links:
                             continue
                         seen_links.add(link)
-                        source_name = urlparse(link).netloc.replace('www.', '')
+
                         title = entry.get('title', 'No title')
                         summary = BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text()
+                        source_name = urlparse(link).netloc.replace('www.', '')
                         image_url = extract_image(entry)
+
+                        # Escape all parts to avoid Markdown errors
+                        title = escape_markdown(title, version=2)
+                        summary = escape_markdown(summary, version=2)
+                        source_name = escape_markdown(source_name, version=2)
+                        link = escape_markdown(link, version=2)
 
                         text = f"*Source: {source_name}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
                         if len(text) > MAX_TEXT_LENGTH:
@@ -177,9 +186,9 @@ class RSSBot:
                         for chat_id in get_groups(self.token):
                             try:
                                 if image_url:
-                                    self.bot.send_photo(chat_id, image_url, caption=text)
+                                    self.bot.send_photo(chat_id, image_url, caption=text, parse_mode='MarkdownV2')
                                 else:
-                                    self.bot.send_message(chat_id, text)
+                                    self.bot.send_message(chat_id, text, parse_mode='MarkdownV2', disable_web_page_preview=False)
                                 time.sleep(0.5)
                             except Exception as e:
                                 print(f"[BOT {self.token}] Failed to send to {chat_id}: {e}")

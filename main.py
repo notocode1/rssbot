@@ -7,10 +7,10 @@ import os
 from typing import List, Optional
 
 # ====== CONFIG ======
-OWNER_ID = 123456789  # Replace with your Telegram numeric ID
+OWNER_ID = 6478535414  # Replace with your Telegram numeric ID
 BOT_TOKENS = [
-    'BOT_TOKEN_1',
-    'BOT_TOKEN_2',
+    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
+    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
     # Add more tokens as needed
 ]
 CHECK_INTERVAL = 60  # seconds between checks

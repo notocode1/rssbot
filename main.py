@@ -6,7 +6,17 @@ import sqlite3
 from typing import List
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
-from telebot.util import escape_markdown
+import re
+
+# ====== CUSTOM ESCAPE FUNCTION ======
+def escape_markdown(text: str, version: int = 2) -> str:
+    if not text:
+        return ''
+    if version == 2:
+        escape_chars = r'_*[]()~`>#+-=|{}.!'
+        return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
+    else:
+        return re.sub(r'([_*\[\]()~`>#+=|{}.!-])', r'\\\1', text)
 
 # ====== CONFIG ======
 OWNER_ID = 6478535414
@@ -168,20 +178,15 @@ class RSSBot:
                             continue
                         seen_links.add(link)
 
-                        title = entry.get('title', 'No title')
-                        summary = BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text()
-                        source_name = urlparse(link).netloc.replace('www.', '')
+                        title = escape_markdown(entry.get('title', 'No title'), version=2)
+                        summary = escape_markdown(BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text(), version=2)
+                        source_name = escape_markdown(urlparse(link).netloc.replace('www.', ''), version=2)
+                        link_escaped = escape_markdown(link, version=2)
                         image_url = extract_image(entry)
 
-                        # Escape all parts to avoid Markdown errors
-                        title = escape_markdown(title, version=2)
-                        summary = escape_markdown(summary, version=2)
-                        source_name = escape_markdown(source_name, version=2)
-                        link = escape_markdown(link, version=2)
-
-                        text = f"*Source: {source_name}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
+                        text = f"*Source: {source_name}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link_escaped})"
                         if len(text) > MAX_TEXT_LENGTH:
-                            text = f"*Source: {source_name}*\n\n*{title}*\n\n[Read more]({link})"
+                            text = f"*Source: {source_name}*\n\n*{title}*\n\n[Read more]({link_escaped})"
 
                         for chat_id in get_groups(self.token):
                             try:

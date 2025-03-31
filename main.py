@@ -4,8 +4,8 @@ import time
 import threading
 import sqlite3
 from typing import List
-import re
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 # ====== CONFIG ======
 OWNER_ID = 6478535414
@@ -54,6 +54,10 @@ def add_feed(token: str, url: str):
     with db:
         db.execute("INSERT OR IGNORE INTO feeds (token, url) VALUES (?, ?)", (token, url))
 
+def remove_feed(token: str, url: str):
+    with db:
+        db.execute("DELETE FROM feeds WHERE token = ? AND url = ?", (token, url))
+
 def get_feeds(token: str) -> List[str]:
     with db:
         return [r[0] for r in db.execute("SELECT url FROM feeds WHERE token = ?", (token,))]
@@ -94,7 +98,7 @@ class RSSBot:
                 return
             parts = msg.text.split(" ", 1)
             if len(parts) < 2:
-                bot.reply_to(msg, "Usage: /broadcast <message>")
+                bot.reply_to(msg, "Usage: /broadcast <message>", parse_mode=None)
                 return
             message = parts[1].strip()
             for chat_id in get_groups(self.token):
@@ -110,11 +114,23 @@ class RSSBot:
                 return
             parts = msg.text.split(" ", 1)
             if len(parts) < 2:
-                bot.reply_to(msg, "Usage: /add <rss_url>")
+                bot.reply_to(msg, "Usage: /add <rss_url>", parse_mode=None)
                 return
             url = parts[1].strip()
             add_feed(self.token, url)
-            bot.reply_to(msg, "✅ Feed added successfully.")
+            bot.reply_to(msg, "✅ Feed added successfully.", parse_mode=None)
+
+        @bot.message_handler(commands=['remove'])
+        def remove_feed_cmd(msg):
+            if msg.from_user.id != OWNER_ID:
+                return
+            parts = msg.text.split(" ", 1)
+            if len(parts) < 2:
+                bot.reply_to(msg, "Usage: /remove <rss_url>", parse_mode=None)
+                return
+            url = parts[1].strip()
+            remove_feed(self.token, url)
+            bot.reply_to(msg, "🗑️ Feed removed successfully.", parse_mode=None)
 
         @bot.message_handler(commands=['feeds'])
         def list_feeds_cmd(msg):
@@ -122,9 +138,15 @@ class RSSBot:
                 return
             feeds = get_feeds(self.token)
             if not feeds:
-                bot.reply_to(msg, "No feeds found.")
+                bot.reply_to(msg, "No feeds found.", parse_mode=None)
             else:
-                bot.reply_to(msg, "\n".join(feeds))
+                bot.reply_to(msg, "\n".join(feeds), parse_mode=None)
+
+        @bot.message_handler(commands=['alive'])
+        def alive_cmd(msg):
+            if msg.from_user.id != OWNER_ID:
+                return
+            bot.reply_to(msg, "✅ Bot is alive and working.", parse_mode=None)
 
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):
@@ -143,13 +165,14 @@ class RSSBot:
                         if not link or link in seen_links:
                             continue
                         seen_links.add(link)
+                        source_name = urlparse(link).netloc.replace('www.', '')
                         title = entry.get('title', 'No title')
                         summary = BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text()
                         image_url = extract_image(entry)
-                        text = f"*{title}*\n\n{summary}\n\n[Read more]({link})"
 
+                        text = f"*Source: {source_name}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
                         if len(text) > MAX_TEXT_LENGTH:
-                            text = f"*{title}*\n\n[Read more]({link})"
+                            text = f"*Source: {source_name}*\n\n*{title}*\n\n[Read more]({link})"
 
                         for chat_id in get_groups(self.token):
                             try:

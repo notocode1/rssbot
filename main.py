@@ -2,34 +2,157 @@ import telebot
 import feedparser
 import time
 import threading
+import sqlite3
 import os
+from typing import List, Optional
 
-TOKEN = os.environ.get("TOKEN")
-RSS_FEED_URL = os.environ.get("RSS_URL")
+# ====== CONFIG ======
+OWNER_ID = 123456789  # Replace with your Telegram numeric ID
+BOT_TOKENS = [
+    'BOT_TOKEN_1',
+    'BOT_TOKEN_2',
+    # Add more tokens as needed
+]
+CHECK_INTERVAL = 60  # seconds between checks
+MAX_ENTRIES = 5  # max entries per feed check
 
-bot = telebot.TeleBot(TOKEN)
-subscribers = set()
-sent_links = set()
+# ====== DATABASE SETUP ======
+db = sqlite3.connect("rss_multi_bot.db", check_same_thread=False)
+db.execute("PRAGMA journal_mode=WAL")  # Better concurrent access
+cur = db.cursor()
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    chat_id = message.chat.id
-    subscribers.add(chat_id)
-    bot.send_message(chat_id, "✅ Subscribed! You’ll get updates automatically.")
+# Schema creation with same structure as original
+for table in [
+    "CREATE TABLE IF NOT EXISTS feeds (token TEXT, url TEXT, PRIMARY KEY (token, url))",
+    "CREATE TABLE IF NOT EXISTS subscribers (token TEXT, chat_id INTEGER, PRIMARY KEY (token, chat_id))",
+    "CREATE TABLE IF NOT EXISTS sent_links (token TEXT, link TEXT, PRIMARY KEY (token, link))"
+]:
+    cur.execute(table)
+db.commit()
 
-def check_feed():
-    while True:
-        feed = feedparser.parse(RSS_FEED_URL)
-        for entry in feed.entries[:5]:
-            if entry.link not in sent_links:
-                msg = f"📰 {entry.title}\n{entry.link}"
-                for user in subscribers:
-                    try:
-                        bot.send_message(user, msg)
-                    except:
-                        pass
-                sent_links.add(entry.link)
-        time.sleep(300)
+# ====== DB HELPERS ======
+def add_feed(token: str, url: str) -> None:
+    cur.execute("INSERT OR IGNORE INTO feeds (token, url) VALUES (?, ?)", (token, url))
+    db.commit()
 
-threading.Thread(target=check_feed).start()
-bot.polling()
+def get_feeds(token: str) -> List[str]:
+    cur.execute("SELECT url FROM feeds WHERE token = ?", (token,))
+    return [r[0] for r in cur.fetchall()]
+
+def add_subscriber(token: str, chat_id: int) -> None:
+    cur.execute("INSERT OR IGNORE INTO subscribers (token, chat_id) VALUES (?, ?)", (token, chat_id))
+    db.commit()
+
+def remove_subscriber(token: str, chat_id: int) -> None:
+    cur.execute("DELETE FROM subscribers WHERE token = ? AND chat_id = ?", (token, chat_id))
+    db.commit()
+
+def get_subscribers(token: str) -> List[int]:
+    cur.execute("SELECT chat_id FROM subscribers WHERE token = ?", (token,))
+    return [r[0] for r in cur.fetchall()]
+
+def mark_sent(token: str, link: str) -> None:
+    cur.execute("INSERT OR IGNORE INTO sent_links (token, link) VALUES (?, ?)", (token, link))
+    db.commit()
+
+def is_sent(token: str, link: str) -> bool:
+    cur.execute("SELECT 1 FROM sent_links WHERE token = ? AND link = ?", (token, link))
+    return cur.fetchone() is not None
+
+def cleanup_sent_links(token: str, max_age: int = 24*60*60) -> None:
+    """Remove sent links older than max_age seconds"""
+    cur.execute("DELETE FROM sent_links WHERE token = ? AND EXISTS (SELECT 1 FROM sent_links WHERE token = ? LIMIT -1 OFFSET 1000)", (token, token))
+    db.commit()
+
+# ====== BOT SETUP ======
+class RSSBot:
+    def __init__(self, token: str, delay_index: int):
+        self.token = token
+        self.bot = telebot.TeleBot(token)
+        self.delay_index = delay_index
+        self.setup_handlers()
+        threading.Thread(target=self.bot.polling, name=f"poll_{token}", daemon=True).start()
+        threading.Thread(target=self.feed_loop, name=f"feeds_{token}", daemon=True).start()
+
+    def setup_handlers(self) -> None:
+        bot = self.bot
+
+        @bot.message_handler(commands=['start'])
+        def start_handler(msg):
+            if not self.check_owner(msg): return
+            add_subscriber(self.token, msg.chat.id)
+            bot.reply_to(msg, "✅ Subscribed to this bot's updates.")
+
+        @bot.message_handler(commands=['stop'])
+        def stop_handler(msg):
+            if not self.check_owner(msg): return
+            remove_subscriber(self.token, msg.chat.id)
+            bot.reply_to(msg, "❌ Unsubscribed from this bot's updates.")
+
+        @bot.message_handler(commands=['add'])
+        def add_handler(msg):
+            if not self.check_owner(msg): return
+            parts = msg.text.split(" ", 1)
+            if len(parts) < 2:
+                bot.reply_to(msg, "Usage: /add <rss_url>")
+                return
+            url = parts[1].strip()
+            add_feed(self.token, url)
+            bot.reply_to(msg, f"✅ Feed added: {url}")
+
+        @bot.message_handler(commands=['feeds'])
+        def feeds_handler(msg):
+            if not self.check_owner(msg): return
+            feeds = get_feeds(self.token)
+            bot.reply_to(msg, "\n".join(feeds) if feeds else "No feeds added yet.")
+
+        @bot.chat_member_handler()
+        def added_to_group(msg):
+            add_subscriber(self.token, msg.chat.id)
+
+        @bot.my_chat_member_handler()
+        def added_as_admin(msg):
+            add_subscriber(self.token, msg.chat.id)
+
+    def check_owner(self, msg) -> bool:
+        return msg.from_user.id == OWNER_ID
+
+    def feed_loop(self) -> None:
+        time.sleep(self.delay_index * CHECK_INTERVAL * 8)  # Initial stagger
+        while True:
+            feeds = get_feeds(self.token)
+            if not feeds:
+                time.sleep(CHECK_INTERVAL)
+                continue
+
+            try:
+                for feed_url in feeds:
+                    feed = feedparser.parse(feed_url)
+                    if feed.bozo:
+                        print(f"[BOT {self.token}] Feed error: {feed.bozo_exception}")
+                        continue
+                    
+                    for entry in feed.entries[:MAX_ENTRIES]:
+                        if not hasattr(entry, 'link') or not hasattr(entry, 'title'):
+                            continue
+                        if not is_sent(self.token, entry.link):
+                            text = f"📰 {entry.title}\n{entry.link}"
+                            for cid in get_subscribers(self.token):
+                                try:
+                                    self.bot.send_message(cid, text)
+                                    time.sleep(0.5)  # Rate limiting
+                                except telebot.apihelper.ApiTelegramException as e:
+                                    if e.error_code == 403:  # Bot was blocked/removed
+                                        remove_subscriber(self.token, cid)
+                                    print(f"[BOT {self.token}] Send failed to {cid}: {e}")
+                            mark_sent(self.token, entry.link)
+                cleanup_sent_links(self.token)
+            except Exception as e:
+                print(f"[BOT {self.token}] Error: {e}")
+            time.sleep(CHECK_INTERVAL)
+
+# ====== START BOTS ======
+bots = [RSSBot(tok, idx) for idx, tok in enumerate(BOT_TOKENS)]
+print("✅ All bots are running...")
+while True:
+    time.sleep(60)

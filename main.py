@@ -161,7 +161,7 @@ class RSSBot:
             message = parts[1].strip()
             for chat_id in get_groups(self.token):
                 try:
-                    bot.send_message(chat_id, message)
+                    bot.send_message(chat_id, message, parse_mode=None)
                     time.sleep(0.5)
                 except Exception as e:
                     print(f"[BOT {self.token}] Broadcast error: {e}")
@@ -198,7 +198,8 @@ class RSSBot:
             if not feeds:
                 bot.reply_to(msg, "No feeds found.", parse_mode=None)
             else:
-                bot.send_message(msg.chat.id, "\n".join(feeds), disable_web_page_preview=True)
+                bot.send_message(msg.chat.id, "
+".join(feeds, parse_mode=None), parse_mode=None, disable_web_page_preview=True)
 
         @bot.message_handler(commands=['alive'])
         def alive_cmd(msg):
@@ -224,7 +225,7 @@ class RSSBot:
                         elif not feed.entries:
                             feed_failures[url] += 1
                             if feed_failures[url] >= 3:
-                                self.bot.send_message(OWNER_ID, f"⚠️ Feed failed multiple times: {url}")
+                                self.bot.send_message(OWNER_ID, f"⚠️ Feed failed multiple times: {url}", parse_mode=None)
                         else:
                             feed_failures[url] = 0
                         for entry in feed.entries[:MAX_ENTRIES]:

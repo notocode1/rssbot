@@ -14,8 +14,8 @@ import os
 # ====== CONFIG ======
 OWNER_ID = 6478535414
 BOT_TOKENS = [
-    '8097964400:AAGDsqfURZ8WEpClJLzLCGPIed7p7sKjPh4', #crypto 
-    '7645110484:AAHBmNrLChJSdAJTypB6Sz7KWuesAFC_HtQ', #buainess 
+    '8097964400:AAGDsqfURZ8WEpClJLzLCGPIed7p7sKjPh4',  # crypto
+    '7645110484:AAHBmNrLChJSdAJTypB6Sz7KWuesAFC_HtQ',  # business
 ]
 DB_URL = os.environ.get("DB_URL")
 CHECK_INTERVAL = 60
@@ -92,10 +92,10 @@ def get_groups(conn, token: str) -> List[int]:
     return [r[0] for r in cur.fetchall()]
 
 @with_db
-def get_group_stats(conn):
+def get_feeds(conn, token: str) -> List[str]:
     cur = conn.cursor()
-    cur.execute("SELECT token, COUNT(*) FROM groups GROUP BY token")
-    return cur.fetchall()
+    cur.execute("SELECT url FROM feeds WHERE token = %s", (token,))
+    return [r[0] for r in cur.fetchall()]
 
 @with_db
 def add_feed(conn, token: str, url: str):
@@ -108,12 +108,6 @@ def remove_feed(conn, token: str, url: str):
     cur = conn.cursor()
     cur.execute("DELETE FROM feeds WHERE token = %s AND url = %s", (token, url))
     conn.commit()
-
-@with_db
-def get_feeds(conn, token: str) -> List[str]:
-    cur = conn.cursor()
-    cur.execute("SELECT url FROM feeds WHERE token = %s", (token,))
-    return [r[0] for r in cur.fetchall()]
 
 @with_db
 def is_seen(conn, token: str, link: str) -> bool:
@@ -156,22 +150,6 @@ class RSSBot:
     def setup_handlers(self):
         bot = self.bot
 
-        @bot.message_handler(commands=['broadcast'])
-        def broadcast(msg):
-            if msg.from_user.id != OWNER_ID:
-                return
-            parts = msg.text.split(" ", 1)
-            if len(parts) < 2:
-                bot.reply_to(msg, escape_markdown("Usage: /broadcast <message>", version=2), parse_mode='MarkdownV2')
-                return
-            message = escape_markdown(parts[1].strip(), version=2)
-            for chat_id in get_groups(self.token):
-                try:
-                    bot.send_message(chat_id, message, parse_mode='MarkdownV2')
-                    time.sleep(0.5)
-                except Exception as e:
-                    print(f"[BOT {self.token}] Broadcast error: {e}")
-
         @bot.message_handler(commands=['add'])
         def add_feed_cmd(msg):
             if msg.from_user.id != OWNER_ID:
@@ -207,26 +185,35 @@ class RSSBot:
                 feed_list = "\n".join([escape_markdown(url, version=2) for url in feeds])
                 bot.send_message(msg.chat.id, feed_list, parse_mode='MarkdownV2', disable_web_page_preview=True)
 
-        @bot.message_handler(commands=['alive'])
-        def alive_cmd(msg):
-            if msg.from_user.id != OWNER_ID:
-                return
-            text = escape_markdown("✅ Bot is alive and working.", version=2)
-            bot.send_message(msg.chat.id, text, parse_mode='MarkdownV2')
-
         @bot.message_handler(commands=['stats'])
         def stats_cmd(msg):
             if msg.from_user.id != OWNER_ID:
                 return
-            stats = get_group_stats()
-            lines = [f"Bot Token: `{escape_markdown(s[0])}` → Groups: *{s[1]}*" for s in stats]
-            reply = "\n".join(lines)
-            bot.send_message(msg.chat.id, reply, parse_mode='MarkdownV2')
+            group_count = len(get_groups(self.token))
+            feed_count = len(get_feeds(self.token))
+            text = (
+                f"*Bot Token:* `{escape_markdown(self.token)}`\n"
+                f"*Groups Saved:* *{group_count}*\n"
+                f"*Feeds Subscribed:* *{feed_count}*"
+            )
+            bot.send_message(msg.chat.id, text, parse_mode='MarkdownV2')
+
+        @bot.message_handler(commands=['alive'])
+        def alive_cmd(msg):
+            if msg.from_user.id != OWNER_ID:
+                return
+            bot.send_message(msg.chat.id, escape_markdown("✅ Bot is alive and working.", version=2), parse_mode='MarkdownV2')
 
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):
             save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type)
-            text = f"🆕 New Group Saved\n\n*Title:* {escape_markdown(msg.chat.title, version=2)}\n*Chat ID:* `{msg.chat.id}`\n*Type:* `{msg.chat.type}`"
+            text = (
+                f"🆕 New Group Saved\n\n"
+                f"*Title:* {escape_markdown(msg.chat.title, version=2)}\n"
+                f"*Chat ID:* `{msg.chat.id}`\n"
+                f"*Type:* `{msg.chat.type}`\n"
+                f"*Token:* `{escape_markdown(self.token)}`"
+            )
             bot.send_message(OWNER_ID, text, parse_mode='MarkdownV2')
 
     def feed_loop(self):
@@ -238,14 +225,6 @@ class RSSBot:
                 for url in feeds:
                     try:
                         feed = feedparser.parse(url)
-                        if not feed.entries and url not in feed_failures:
-                            feed_failures[url] = 1
-                        elif not feed.entries:
-                            feed_failures[url] += 1
-                            if feed_failures[url] >= 3:
-                                self.bot.send_message(OWNER_ID, escape_markdown(f"⚠️ Feed failed multiple times: {url}", version=2), parse_mode='MarkdownV2')
-                        else:
-                            feed_failures[url] = 0
                         for entry in feed.entries[:MAX_ENTRIES]:
                             link = entry.get('link')
                             if not link or is_seen(self.token, link):
@@ -265,38 +244,27 @@ class RSSBot:
                                 text += f"\n\n[Read more]({link_escaped})"
 
                             for chat_id in get_groups(self.token):
-                                success = False
-                                delay = 1
-                                while not success:
-                                    try:
-                                        if image_url:
-                                            self.bot.send_photo(chat_id, image_url, caption=text, parse_mode='MarkdownV2')
-                                        else:
-                                            self.bot.send_message(chat_id, text, parse_mode='MarkdownV2', disable_web_page_preview=False)
-                                        time.sleep(0.5)
-                                        success = True
-                                    except telebot.apihelper.ApiTelegramException as e:
-                                        if "Flood" in str(e):
-                                            wait_match = re.search(r'\d+', str(e))
-                                            wait_time = int(wait_match.group()) if wait_match else delay
-                                            print(f"[BOT {self.token}] Flood wait: sleeping {wait_time}s")
-                                            time.sleep(wait_time)
-                                            delay *= 2
-                                        else:
-                                            print(f"[BOT {self.token}] Telegram send error: {e}")
-                                            break
-                    except feedparser.FeedParserError as e:
-                        print(f"[BOT {self.token}] Feed parsing error: {e}")
-                    except requests.exceptions.RequestException as e:
-                        print(f"[BOT {self.token}] Network error: {e}")
+                                try:
+                                    if image_url:
+                                        self.bot.send_photo(chat_id, image_url, caption=text, parse_mode='MarkdownV2')
+                                    else:
+                                        self.bot.send_message(chat_id, text, parse_mode='MarkdownV2', disable_web_page_preview=False)
+                                    time.sleep(0.5)
+                                except telebot.apihelper.ApiTelegramException as e:
+                                    if "kicked" in str(e).lower() or "forbidden" in str(e).lower():
+                                        print(f"Bot was removed from chat {chat_id}, skipping.")
+                                        continue
+                                    print(f"Telegram send error: {e}")
+                    except Exception as e:
+                        print(f"Feed error from {url}: {e}")
             except Exception as e:
-                print(f"[BOT {self.token}] Feed loop error: {e}")
+                print(f"Feed loop error: {e}")
             time.sleep(CHECK_INTERVAL)
 
 # ====== START BOTS ======
 for index, token in enumerate(BOT_TOKENS):
     RSSBot(token, index)
 
-print("✅ Group-only RSS bots running...")
+print("✅ All RSS bots are running...")
 while True:
     time.sleep(60)

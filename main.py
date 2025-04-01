@@ -14,8 +14,8 @@ import os
 # ====== CONFIG ======
 OWNER_ID = 6478535414
 BOT_TOKENS = [
-    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
-    '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
+    '8097964400:AAGDsqfURZ8WEpClJLzLCGPIed7p7sKjPh4', #crypto 
+    '7645110484:AAG8YSTaCDQHF0TPJMnv1pImhJkdHw0fQ3I', #Business
 ]
 DB_URL = os.environ.get("DB_URL")
 CHECK_INTERVAL = 60

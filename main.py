@@ -199,7 +199,7 @@ class RSSBot:
                 bot.reply_to(msg, "No feeds found.", parse_mode=None)
             else:
                 bot.send_message(msg.chat.id, "
-".join(feeds, parse_mode=None), parse_mode=None, disable_web_page_preview=True)
+".join(feeds), parse_mode=None, disable_web_page_preview=True)
 
         @bot.message_handler(commands=['alive'])
         def alive_cmd(msg):

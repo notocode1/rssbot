@@ -14,8 +14,8 @@ import os
 # ====== CONFIG ======
 OWNER_ID = 6478535414
 BOT_TOKENS = [
-    '8097964400:AAGDsqfURZ8WEpClJLzLCGPIed7p7sKjPh4', #crypto 
-    '7645110484:AAG8YSTaCDQHF0TPJMnv1pImhJkdHw0fQ3I', #Business
+    '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
+    '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
 ]
 DB_URL = os.environ.get("DB_URL")
 CHECK_INTERVAL = 60
@@ -90,6 +90,12 @@ def get_groups(conn, token: str) -> List[int]:
     cur = conn.cursor()
     cur.execute("SELECT chat_id FROM groups WHERE token = %s", (token,))
     return [r[0] for r in cur.fetchall()]
+
+@with_db
+def get_group_stats(conn):
+    cur = conn.cursor()
+    cur.execute("SELECT token, COUNT(*) FROM groups GROUP BY token")
+    return cur.fetchall()
 
 @with_db
 def add_feed(conn, token: str, url: str):
@@ -208,9 +214,20 @@ class RSSBot:
             text = escape_markdown("✅ Bot is alive and working.", version=2)
             bot.send_message(msg.chat.id, text, parse_mode='MarkdownV2')
 
+        @bot.message_handler(commands=['stats'])
+        def stats_cmd(msg):
+            if msg.from_user.id != OWNER_ID:
+                return
+            stats = get_group_stats()
+            lines = [f"Bot Token: `{escape_markdown(s[0])}` → Groups: *{s[1]}*" for s in stats]
+            reply = "\n".join(lines)
+            bot.send_message(msg.chat.id, reply, parse_mode='MarkdownV2')
+
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):
             save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type)
+            text = f"🆕 New Group Saved\n\n*Title:* {escape_markdown(msg.chat.title, version=2)}\n*Chat ID:* `{msg.chat.id}`\n*Type:* `{msg.chat.type}`"
+            bot.send_message(OWNER_ID, text, parse_mode='MarkdownV2')
 
     def feed_loop(self):
         feed_failures = {}

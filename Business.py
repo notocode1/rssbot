@@ -208,11 +208,16 @@ def feed_loop():
             for url in feeds:
                 try:
                     feed = feedparser.parse(url)
-                    for entry in feed.entries[:MAX_ENTRIES]:
-                        link = entry.get('link')
-                        if not link or is_seen(link):
-                            continue
-                        mark_seen(link)
+                   for entry in feed.entries[:MAX_ENTRIES]:
+    link = entry.get('link')
+    if not link:
+        continue
+
+    # Only mark as seen on first fetch — skip sending
+    if not is_seen(link):
+        mark_seen(link)
+        continue  # Prevent spam from first-time entries
+
 
                         title = escape_markdown(entry.get('title', 'No title'), version=2)
                         summary = escape_markdown(BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text(), version=2)

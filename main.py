@@ -9,6 +9,7 @@ from typing import List
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import re
+import os
 
 # ====== CONFIG ======
 OWNER_ID = 6478535414
@@ -16,8 +17,7 @@ BOT_TOKENS = [
     '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
     '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
 ]
-import os
-DB_URL = os.environ.get("DB_URL")  # Replace with your actual DB URL
+DB_URL = os.environ.get("DB_URL")
 CHECK_INTERVAL = 60
 MAX_ENTRIES = 5
 MAX_TEXT_LENGTH = 4000
@@ -198,8 +198,7 @@ class RSSBot:
             if not feeds:
                 bot.reply_to(msg, "No feeds found.", parse_mode=None)
             else:
-                bot.send_message(msg.chat.id, "
-".join(feeds), parse_mode=None, disable_web_page_preview=True)
+                bot.send_message(msg.chat.id, "\n".join(feeds), parse_mode=None, disable_web_page_preview=True)
 
         @bot.message_handler(commands=['alive'])
         def alive_cmd(msg):

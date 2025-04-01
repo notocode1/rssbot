@@ -16,6 +16,10 @@ OWNER_ID = 6478535414
 BOT_TOKENS = [
     '8097964400:AAGDsqfURZ8WEpClJLzLCGPIed7p7sKjPh4',  # crypto
     '7645110484:AAHBmNrLChJSdAJTypB6Sz7KWuesAFC_HtQ',  # business
+    '7671941149:AAEPVPZKCiW9vVmsMGV4-JIOt91vkp6o_Cg',  #World
+    '8195239331:AAFg1csI6-krBMa1K5uWdERAgOarpKjrG6E',  # tech
+
+    
 ]
 DB_URL = os.environ.get("DB_URL")
 CHECK_INTERVAL = 60

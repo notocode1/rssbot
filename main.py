@@ -211,10 +211,17 @@ class RSSBot:
         def auto_save_group(msg):
             if save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type):
                 text = (
-                f"🆕 New Group Saved
+    f"🆕 New Group Saved
 
 "
-                f"*Title:* {escape_markdown(msg.chat.title, version=2)}
+    f"*Title:* {escape_markdown(msg.chat.title, version=2)}
+"
+    f"*Chat ID:* `{msg.chat.id}`
+"
+    f"*Type:* `{msg.chat.type}`
+"
+    f"*Token:* `{escape_markdown(self.token, version=2)}`"
+)}
 "
                 f"*Chat ID:* `{msg.chat.id}`
 "

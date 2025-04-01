@@ -16,7 +16,9 @@ BOT_TOKENS = [
     '7993876090:AAEK5MqWaF_cnc5E5KcMzGpbtOtLeEh3cmg',
     '7571485933:AAENqnDbWTima0s7y8pFRrj5N58OSFDtnYk',
 ]
-DB_URL = 'your_neon_postgres_connection_url_here'  # Replace with your actual DB URL
+import os
+DB_URL = os.environ.get("DB_URL")
+
 CHECK_INTERVAL = 60
 MAX_ENTRIES = 5
 MAX_TEXT_LENGTH = 4000

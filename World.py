@@ -1,4 +1,4 @@
-```````````````````import telebot
+import telebot
 import feedparser
 import time
 import threading

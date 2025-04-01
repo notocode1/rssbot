@@ -2,10 +2,11 @@ import telebot
 import feedparser
 import time
 import threading
-import sqlite3
+import psycopg2
 from typing import List
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+import os
 import re
 
 # ====== CUSTOM ESCAPE FUNCTION ======
@@ -29,49 +30,52 @@ MAX_ENTRIES = 5
 MAX_TEXT_LENGTH = 4000
 
 # ====== DATABASE SETUP ======
-db = sqlite3.connect("rss_multi_bot.db", check_same_thread=False)
-db.execute("PRAGMA journal_mode=WAL")
+db_url = os.getenv("DB_URL")
+conn = psycopg2.connect(db_url)
+cursor = conn.cursor()
 
-with db:
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS groups (
-        token TEXT,
-        chat_id INTEGER PRIMARY KEY,
-        title TEXT,
-        type TEXT,
-        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-    db.execute("""
-    CREATE TABLE IF NOT EXISTS feeds (
-        token TEXT,
-        url TEXT,
-        PRIMARY KEY (token, url)
-    )
-    """)
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS groups (
+    token TEXT,
+    chat_id BIGINT PRIMARY KEY,
+    title TEXT,
+    type TEXT,
+    date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS feeds (
+    token TEXT,
+    url TEXT,
+    PRIMARY KEY (token, url)
+)
+""")
+conn.commit()
 
 # ====== DB HELPERS ======
 def save_group(token: str, chat_id: int, title: str, chat_type: str):
-    with db:
-        db.execute("""
-        INSERT OR IGNORE INTO groups (token, chat_id, title, type) VALUES (?, ?, ?, ?)
-        """, (token, chat_id, title, chat_type))
+    cursor.execute("""
+    INSERT INTO groups (token, chat_id, title, type)
+    VALUES (%s, %s, %s, %s)
+    ON CONFLICT (chat_id) DO NOTHING
+    """, (token, chat_id, title, chat_type))
+    conn.commit()
 
 def get_groups(token: str) -> List[int]:
-    with db:
-        return [r[0] for r in db.execute("SELECT chat_id FROM groups WHERE token = ?", (token,))]
+    cursor.execute("SELECT chat_id FROM groups WHERE token = %s", (token,))
+    return [r[0] for r in cursor.fetchall()]
 
 def add_feed(token: str, url: str):
-    with db:
-        db.execute("INSERT OR IGNORE INTO feeds (token, url) VALUES (?, ?)", (token, url))
+    cursor.execute("INSERT INTO feeds (token, url) VALUES (%s, %s) ON CONFLICT DO NOTHING", (token, url))
+    conn.commit()
 
 def remove_feed(token: str, url: str):
-    with db:
-        db.execute("DELETE FROM feeds WHERE token = ? AND url = ?", (token, url))
+    cursor.execute("DELETE FROM feeds WHERE token = %s AND url = %s", (token, url))
+    conn.commit()
 
 def get_feeds(token: str) -> List[str]:
-    with db:
-        return [r[0] for r in db.execute("SELECT url FROM feeds WHERE token = ?", (token,))]
+    cursor.execute("SELECT url FROM feeds WHERE token = %s", (token,))
+    return [r[0] for r in cursor.fetchall()]
 
 def extract_image(entry):
     if 'media_content' in entry and entry.media_content:

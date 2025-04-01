@@ -204,7 +204,7 @@ class RSSBot:
         def alive_cmd(msg):
             if msg.from_user.id != OWNER_ID:
                 return
-            bot.reply_to(msg, "✅ Bot is alive and working.", parse_mode=None)
+            bot.send_message(msg.chat.id, "✅ Bot is alive and working.", parse_mode=None)
 
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):

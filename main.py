@@ -23,6 +23,8 @@ MAX_ENTRIES = 5
 MAX_TEXT_LENGTH = 4000
 
 # ====== DATABASE POOL ======
+if not DB_URL:
+    raise ValueError("DB_URL environment variable is not set!")
 db_pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DB_URL)
 
 def with_db(func):
@@ -51,10 +53,11 @@ def init_db(conn):
     cur.execute("""
     CREATE TABLE IF NOT EXISTS groups (
         token TEXT,
-        chat_id BIGINT PRIMARY KEY,
+        chat_id BIGINT,
         title TEXT,
         type TEXT,
-        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (token, chat_id)
     )
     """)
     cur.execute("""
@@ -79,14 +82,16 @@ init_db()
 @with_db
 def save_group(conn, token: str, chat_id: int, title: str, chat_type: str) -> bool:
     cur = conn.cursor()
-    cur.execute("""
-    INSERT INTO groups (token, chat_id, title, type) VALUES (%s, %s, %s, %s)
-    ON CONFLICT DO NOTHING
-    RETURNING chat_id
-    """, (token, chat_id, title, chat_type))
-    inserted = cur.fetchone()
-    conn.commit()
-    return inserted is not None
+    cur.execute("SELECT 1 FROM groups WHERE token = %s AND chat_id = %s", (token, chat_id))
+    exists = cur.fetchone() is not None
+    if not exists:
+        cur.execute("""
+        INSERT INTO groups (token, chat_id, title, type) VALUES (%s, %s, %s, %s)
+        ON CONFLICT DO NOTHING
+        """, (token, chat_id, title, chat_type))
+        conn.commit()
+        return True
+    return False
 
 @with_db
 def get_groups(conn, token: str) -> List[int]:
@@ -162,6 +167,14 @@ class RSSBot:
                 bot.reply_to(msg, escape_markdown("Usage: /add <rss_url>", version=2), parse_mode='MarkdownV2')
                 return
             url = parts[1].strip()
+            try:
+                feed = feedparser.parse(url)
+                if not feed.entries:
+                    bot.reply_to(msg, escape_markdown("Invalid or empty RSS feed.", version=2), parse_mode='MarkdownV2')
+                    return
+            except Exception:
+                bot.reply_to(msg, escape_markdown("Failed to validate RSS feed.", version=2), parse_mode='MarkdownV2')
+                return
             add_feed(self.token, url)
             bot.reply_to(msg, escape_markdown("✅ Feed added successfully.", version=2), parse_mode='MarkdownV2')
 
@@ -195,7 +208,7 @@ class RSSBot:
             group_count = len(get_groups(self.token))
             feed_count = len(get_feeds(self.token))
             text = (
-                f"*Bot Token:* `{escape_markdown(self.token)}`\n"
+                f"*Bot Token:* `{escape_markdown(self.token, version=2)}`\n"
                 f"*Groups Saved:* *{group_count}*\n"
                 f"*Feeds Subscribed:* *{feed_count}*"
             )
@@ -211,27 +224,15 @@ class RSSBot:
         def auto_save_group(msg):
             if save_group(self.token, msg.chat.id, msg.chat.title, msg.chat.type):
                 text = (
-    f"🆕 New Group Saved
+                    f"🆕 *New Group Saved*\n\n"
+                    f"*Title:* {escape_markdown(msg.chat.title, version=2)}\n"
+                    f"*Chat ID:* `{msg.chat.id}`\n"
+                    f"*Type:* `{msg.chat.type}`\n"
+                    f"*Token:* `{escape_markdown(self.token, version=2)}`"
+                )
+                bot.send_message(OWNER_ID, text, parse_mode='MarkdownV2')
 
-"
-    f"*Title:* {escape_markdown(msg.chat.title, version=2)}
-"
-    f"*Chat ID:* `{msg.chat.id}`
-"
-    f"*Type:* `{msg.chat.type}`
-"
-    f"*Token:* `{escape_markdown(self.token, version=2)}`"
-)}
-"
-                f"*Chat ID:* `{msg.chat.id}`
-"
-                f"*Type:* `{msg.chat.type}`
-"
-                f"*Token:* `{escape_markdown(self.token, version=2)}`"
-            )
-            bot.send_message(OWNER_ID, text, parse_mode='MarkdownV2')
-
-        def feed_loop(self):
+    def feed_loop(self):
         feed_failures = {}
         time.sleep(self.delay_index * CHECK_INTERVAL * 8)
         while True:

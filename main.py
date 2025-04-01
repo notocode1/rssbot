@@ -18,6 +18,7 @@ BOT_TOKENS = [
     '7645110484:AAHBmNrLChJSdAJTypB6Sz7KWuesAFC_HtQ',  # business
     '7671941149:AAEPVPZKCiW9vVmsMGV4-JIOt91vkp6o_Cg',  #World
     '8195239331:AAFg1csI6-krBMa1K5uWdERAgOarpKjrG6E',  # tech
+    '8008278950:AAFVGa6ID_JTt_-hs168y9KRlfhKgHoaW_0',  # Ap
 
     
 ]

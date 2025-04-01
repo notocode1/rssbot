@@ -109,12 +109,12 @@ class RSSBot:
                 return
             parts = msg.text.split(" ", 1)
             if len(parts) < 2:
-                bot.reply_to(msg, "Usage: /broadcast <message>", parse_mode=None)
+                bot.reply_to(msg, escape_markdown("Usage: /broadcast <message>"), parse_mode="MarkdownV2")
                 return
-            message = parts[1].strip()
+            message = escape_markdown(parts[1].strip())
             for chat_id in get_groups(self.token):
                 try:
-                    bot.send_message(chat_id, message)
+                    bot.send_message(chat_id, message, parse_mode='MarkdownV2')
                     time.sleep(0.5)
                 except Exception as e:
                     print(f"[BOT {self.token}] Failed to send broadcast to {chat_id}: {e}")
@@ -125,11 +125,11 @@ class RSSBot:
                 return
             parts = msg.text.split(" ", 1)
             if len(parts) < 2:
-                bot.reply_to(msg, "Usage: /add <rss_url>", parse_mode=None)
+                bot.reply_to(msg, escape_markdown("Usage: /add <rss_url>"), parse_mode="MarkdownV2")
                 return
             url = parts[1].strip()
             add_feed(self.token, url)
-            bot.reply_to(msg, "✅ Feed added successfully.", parse_mode=None)
+            bot.reply_to(msg, escape_markdown("✅ Feed added successfully."), parse_mode="MarkdownV2")
 
         @bot.message_handler(commands=['remove'])
         def remove_feed_cmd(msg):
@@ -137,11 +137,11 @@ class RSSBot:
                 return
             parts = msg.text.split(" ", 1)
             if len(parts) < 2:
-                bot.reply_to(msg, "Usage: /remove <rss_url>", parse_mode=None)
+                bot.reply_to(msg, escape_markdown("Usage: /remove <rss_url>"), parse_mode="MarkdownV2")
                 return
             url = parts[1].strip()
             remove_feed(self.token, url)
-            bot.reply_to(msg, "🗑️ Feed removed successfully.", parse_mode=None)
+            bot.reply_to(msg, escape_markdown("🗑️ Feed removed successfully."), parse_mode="MarkdownV2")
 
         @bot.message_handler(commands=['feeds'])
         def list_feeds_cmd(msg):
@@ -149,16 +149,16 @@ class RSSBot:
                 return
             feeds = get_feeds(self.token)
             if not feeds:
-                bot.reply_to(msg, "No feeds found.", parse_mode=None)
+                bot.reply_to(msg, escape_markdown("No feeds found."), parse_mode="MarkdownV2")
             else:
-                feed_list = "\n".join(feeds)
-                bot.send_message(msg.chat.id, feed_list, parse_mode=None, disable_web_page_preview=True)
+                feed_list = escape_markdown("\n".join(feeds), version=2)
+                bot.send_message(msg.chat.id, feed_list, parse_mode='MarkdownV2', disable_web_page_preview=True)
 
         @bot.message_handler(commands=['alive'])
         def alive_cmd(msg):
             if msg.from_user.id != OWNER_ID:
                 return
-            bot.reply_to(msg, "✅ Bot is alive and working.", parse_mode=None)
+            bot.reply_to(msg, escape_markdown("✅ Bot is alive and working."), parse_mode="MarkdownV2")
 
         @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
         def auto_save_group(msg):

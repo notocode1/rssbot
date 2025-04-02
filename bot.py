@@ -2,7 +2,7 @@ import time
 import telebot
 from config import BOT_TOKEN  # Make sure this import is here
 from db import init_db, save_group, get_last_seen_time
-from commands import register_commands
+from commands import register_commands  # Ensure commands are being registered
 from feeds import start_feed_loop
 import config  # Add this line to import the config
 from utils import escape_markdown  # Make sure escape_markdown is imported
@@ -33,7 +33,7 @@ def on_group_message(msg):
 def run_bot(config):
     init_db()
     start_time = get_last_seen_time() or time.time()
-    register_commands(bot)
+    register_commands(bot)  # Register commands here
     start_feed_loop(bot, start_time)
     print("🚀 Bot is running")
     bot.infinity_polling()

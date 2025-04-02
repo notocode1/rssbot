@@ -1,4 +1,3 @@
-# commands.py
 from config import OWNER_ID
 from telebot import TeleBot
 from db import add_feed, remove_feed, get_feeds, get_groups
@@ -50,4 +49,25 @@ def register_commands(bot: TeleBot):
             f"👥 Groups: *{groups}*\n"
             f"📡 Feeds: *{feeds}*"
         )
-        bot.send_message(msg.chat.id, escape_markdown(stats_text, version=2), parse_mode='MarkdownV2')
+        bot.send_message(msg.chat.id, stats_text, parse_mode='MarkdownV2')
+
+    # Broadcast command: Allows the owner to send a message to all groups
+    @bot.message_handler(commands=['broadcast'])
+    def broadcast_cmd(msg):
+        if msg.from_user.id != OWNER_ID: return
+        parts = msg.text.split(" ", 1)
+        if len(parts) < 2:
+            bot.reply_to(msg, escape_markdown("Usage: /broadcast <message>", version=2))
+            return
+
+        broadcast_message = parts[1].strip()
+
+        # Send the message to all groups
+        groups = get_groups()
+        for chat_id in groups:
+            try:
+                bot.send_message(chat_id, broadcast_message, disable_web_page_preview=False)
+            except Exception as e:
+                print(f"Error broadcasting to chat {chat_id}: {e}")
+        
+        bot.reply_to(msg, escape_markdown(f"✅ Broadcast message sent to {len(groups)} groups.", version=2))

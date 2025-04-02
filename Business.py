@@ -192,6 +192,19 @@ def alive_cmd(msg):
         return
     bot.send_message(msg.chat.id, escape_markdown("✅ Bot is alive and working.", version=2))
 
+@bot.message_handler(commands=['stats'])
+def stats_cmd(msg):
+    if msg.from_user.id != OWNER_ID:
+        return
+    groups = len(get_groups())
+    feeds = len(get_feeds())
+    stats_text = (
+        f"📊 *Bot Stats*\n\n"
+        f"👥 Groups: *{groups}*\n"
+        f"📡 Feeds: *{feeds}*"
+    )
+    bot.send_message(msg.chat.id, stats_text, parse_mode='MarkdownV2')
+
 @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
 def auto_save_group(msg):
     if save_group(msg.chat.id, msg.chat.title, msg.chat.type):

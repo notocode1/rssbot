@@ -1,4 +1,3 @@
-# feeds.py
 import time
 import feedparser
 from db import get_feeds, get_groups, is_seen, mark_seen
@@ -15,10 +14,16 @@ def start_feed_loop(bot, start_time):
                 for url in feeds:
                     try:
                         feed = feedparser.parse(url)
+                        posts_count = 0
                         for entry in feed.entries[:MAX_ENTRIES]:
+                            if posts_count >= 3:
+                                break  # Limit to 3 posts per feed
+
                             link = entry.get('link')
                             if not link or is_seen(link):
                                 continue
+
+                            # Check if the published time is older than start_time
                             published_time = time.mktime(entry.published_parsed) if 'published_parsed' in entry else None
                             if published_time and published_time < start_time:
                                 continue
@@ -30,6 +35,7 @@ def start_feed_loop(bot, start_time):
                             image_url = extract_image(entry)
                             text = f"📰 *{source}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
 
+                            # Post only if text is under 4000 characters
                             if len(text) > MAX_TEXT_LENGTH:
                                 continue
 
@@ -39,13 +45,14 @@ def start_feed_loop(bot, start_time):
                                         bot.send_photo(chat_id, image_url, caption=text)
                                     else:
                                         bot.send_message(chat_id, text, disable_web_page_preview=False)
-                                    time.sleep(0.5)
                                 except Exception as e:
-                                    print(f"[!] Telegram error in chat {chat_id}: {e}")
-                    except Exception as e:
-                        print(f"[!] Feed error for {url}: {e}")
+                                    print(f"Error posting to chat {chat_id}: {e}")
+
+                            posts_count += 1
+
+                        # Wait for 1 hour before checking again
+                        time.sleep(3600)
             except Exception as e:
-                print(f"[!] Feed loop error: {e}")
-            time.sleep(CHECK_INTERVAL)
-    import threading
-    threading.Thread(target=loop, daemon=True).start()
+                print(f"Error in feed loop: {e}")
+                time.sleep(3600)  # Wait for 1 hour in case of an error
+    loop()

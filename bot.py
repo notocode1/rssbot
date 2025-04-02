@@ -1,9 +1,10 @@
 import time
 import telebot
-from config import BOT_TOKEN
+from config import BOT_TOKEN  # Make sure this import is here
 from db import init_db, save_group, get_last_seen_time
 from commands import register_commands
 from feeds import start_feed_loop
+import config  # Add this line to import the config
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MarkdownV2')
 
@@ -21,4 +22,4 @@ def run_bot(config):
 
 # Ensure that the bot runs when this file is executed directly
 if __name__ == "__main__":
-    run_bot(config)
+    run_bot(config)  # This passes the imported config to the function

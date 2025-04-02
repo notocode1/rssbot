@@ -14,7 +14,7 @@ def on_group_message(msg):
     # Save the group to the database
     save_group(msg.chat.id, msg.chat.title, msg.chat.type)
     
-    # Send a confirmation message to the owner (you)
+    # Send a confirmation message to the owner (you) privately
     added_message = (
         f"🆕 New Group Added:\n\n"
         f"*Title:* {escape_markdown(msg.chat.title, version=2)}\n"

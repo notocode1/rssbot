@@ -73,7 +73,6 @@ def register_commands(bot: TeleBot):
         )
         bot.send_message(msg.chat.id, stats_text, parse_mode='MarkdownV2')
 
-    # Broadcast command: Allows the owner to send a message to all groups
     @bot.message_handler(commands=['broadcast'])
     def broadcast_cmd(msg):
         if msg.from_user.id != OWNER_ID: return

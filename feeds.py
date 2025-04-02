@@ -35,9 +35,10 @@ def start_feed_loop(bot, start_time):
                             image_url = extract_image(entry)
                             text = f"📰 *{source}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
 
-                            # Post only if text is under 4000 characters
+                            # **Check if text exceeds 4000 characters and skip if it does**
                             if len(text) > MAX_TEXT_LENGTH:
-                                continue
+                                print(f"Skipping feed due to text length > {MAX_TEXT_LENGTH} characters.")
+                                continue  # Skip this entry entirely if it's too long
 
                             for chat_id in get_groups():
                                 try:

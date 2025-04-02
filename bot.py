@@ -1,4 +1,3 @@
-# bot.py
 import time
 import telebot
 from config import BOT_TOKEN
@@ -19,3 +18,7 @@ def run_bot(config):
     start_feed_loop(bot, start_time)
     print("🚀 Bot is running")
     bot.infinity_polling()
+
+# Ensure that the bot runs when this file is executed directly
+if __name__ == "__main__":
+    run_bot(config)

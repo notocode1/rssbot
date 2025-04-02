@@ -1,0 +1,9 @@
+# config.py
+BOT_TOKEN = "YOUR_BUSINESS_BOT_TOKEN"  # Replace with real token
+OWNER_ID = 6478535414
+DB_URL = "YOUR_POSTGRESQL_URL"  # Replace with your Neon DB URL
+CHECK_INTERVAL = 60
+MAX_ENTRIES = 5
+MAX_TEXT_LENGTH = 4000
+
+BOT_ID = BOT_TOKEN.split(":")[0]

@@ -35,10 +35,9 @@ def start_feed_loop(bot, start_time):
                             image_url = extract_image(entry)
                             text = f"📰 *{source}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
 
-                            # **Check if text exceeds 4000 characters and skip if it does**
+                            # Post only if text is under 4000 characters
                             if len(text) > MAX_TEXT_LENGTH:
-                                print(f"Skipping feed due to text length > {MAX_TEXT_LENGTH} characters.")
-                                continue  # Skip this entry entirely if it's too long
+                                continue
 
                             for chat_id in get_groups():
                                 try:
@@ -50,10 +49,16 @@ def start_feed_loop(bot, start_time):
                                     print(f"Error posting to chat {chat_id}: {e}")
 
                             posts_count += 1
+                    except Exception as e:
+                        # Report the error to the owner privately
+                        bot.send_message(OWNER_ID, f"❌ Failed to process feed from {url}. Error: {str(e)}")
+                        print(f"Error processing feed {url}: {e}")
 
-                        # Wait for 1 hour before checking again
-                        time.sleep(3600)
+                # Wait for 1 hour before checking again
+                time.sleep(3600)
             except Exception as e:
+                # Report the error to the owner privately
+                bot.send_message(OWNER_ID, f"❌ Error in feed loop: {str(e)}")
                 print(f"Error in feed loop: {e}")
                 time.sleep(3600)  # Wait for 1 hour in case of an error
     loop()

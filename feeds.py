@@ -35,6 +35,11 @@ def start_feed_loop(bot, start_time):
                             image_url = extract_image(entry)
                             text = f"📰 *{source}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
 
+                            # Skip if the text exceeds Telegram's 1024-character limit
+                            if len(text) > 1024:
+                                print(f"Skipping feed from {url} because the caption is too long.")
+                                continue  # Skip this feed if it exceeds the 1024-character limit
+
                             # Post only if text is under 4000 characters
                             if len(text) > MAX_TEXT_LENGTH:
                                 continue

@@ -1,6 +1,6 @@
 # config.py
 BOT_TOKEN = "7645110484:AAHBmNrLChJSdAJTypB6Sz7KWuesAFC_HtQ"  # Replace with real token
-OWNER_ID = 6478535414
+OWNER_ID = "6478535414"
 DB_URL = "postgresql://Beon_owner:npg_sYXn3CLrKA4N@ep-shy-recipe-a5azsc70-pooler.us-east-2.aws.neon.tech/Beon?sslmode=require"  # Replace with your Neon DB URL
 CHECK_INTERVAL = 60
 MAX_ENTRIES = 5

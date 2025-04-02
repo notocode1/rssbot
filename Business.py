@@ -26,6 +26,8 @@ if not BOT_TOKEN or not DB_URL:
 bot_id = BOT_TOKEN.split(":")[0]
 db_pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DB_URL)
 
+start_time = time.time()
+
 def with_db(func):
     def wrapper(*args, **kwargs):
         conn = db_pool.getconn()
@@ -208,34 +210,39 @@ def feed_loop():
             for url in feeds:
                 try:
                     feed = feedparser.parse(url)
-                   for entry in feed.entries[:MAX_ENTRIES]:
-    link = entry.get('link')
-    if not link:
-        continue
+                    for entry in feed.entries[:MAX_ENTRIES]:
+                        link = entry.get('link')
+                        if not link:
+                            continue
 
-    # Only mark as seen on first fetch — skip sending
-    if not is_seen(link):
-        mark_seen(link)
-        continue  # Prevent spam from first-time entries
-
+                        # Only process entries published after bot started
+                        published_time = time.mktime(entry.published_parsed) if 'published_parsed' in entry else None
+                        if published_time is None or published_time < start_time:
+                            continue
 
                         title = escape_markdown(entry.get('title', 'No title'), version=2)
-                        summary = escape_markdown(BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text(), version=2)
+                        summary_text = BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text()
+                        summary = escape_markdown(summary_text, version=2)
                         source = escape_markdown(urlparse(link).netloc.replace('www.', '').split('.')[0].capitalize(), version=2)
                         image_url = extract_image(entry)
 
                         text = f"\U0001F4F0 *{source}*\n\n*{title}*"
-                        if summary and len(f"{text}\n\n{summary}\n\n[Read more]({link})") <= MAX_TEXT_LENGTH:
-                            text += f"\n\n{summary}\n\n[Read more]({link})"
+                        full_text = f"{text}\n\n{summary}\n\n[Read more]({link})"
+
+                        if len(full_text) > MAX_TEXT_LENGTH:
+                            continue  # skip this one, it's too long
+
+                        if not is_seen(link):
+                            mark_seen(link)
                         else:
-                            text += f"\n\n[Read more]({link})"
+                            continue  # already seen, skip it
 
                         for chat_id in get_groups():
                             try:
                                 if image_url:
-                                    bot.send_photo(chat_id, image_url, caption=text)
+                                    bot.send_photo(chat_id, image_url, caption=full_text)
                                 else:
-                                    bot.send_message(chat_id, text, disable_web_page_preview=False)
+                                    bot.send_message(chat_id, full_text, disable_web_page_preview=False)
                                 time.sleep(0.5)
                             except Exception as e:
                                 print(f"Telegram send error in chat {chat_id}: {e}")

@@ -17,21 +17,13 @@ def register_commands(bot: TeleBot):
         # Try adding the feed
         try:
             add_feed(feed_url)
-            # If successful, notify the group
-            for chat_id in get_groups():
-                try:
-                    bot.send_message(chat_id, f"✅ A new feed has been successfully added: {feed_url}")
-                except Exception as e:
-                    print(f"Error sending to chat {chat_id}: {e}")
-            bot.reply_to(msg, escape_markdown("✅ Feed added and reported to groups.", version=2))
+            # If successful, notify the owner privately
+            bot.send_message(OWNER_ID, f"✅ A new feed has been successfully added: {feed_url}")
+            bot.reply_to(msg, escape_markdown("✅ Feed added successfully.", version=2))
 
         except Exception as e:
-            # If there is an error, notify the group
-            for chat_id in get_groups():
-                try:
-                    bot.send_message(chat_id, f"❌ Failed to add feed: {feed_url}. Error: {str(e)}")
-                except Exception as e:
-                    print(f"Error sending to chat {chat_id}: {e}")
+            # If there is an error, notify the owner privately
+            bot.send_message(OWNER_ID, f"❌ Failed to add feed: {feed_url}. Error: {str(e)}")
             bot.reply_to(msg, escape_markdown(f"❌ Feed could not be added. Error: {str(e)}", version=2))
 
     @bot.message_handler(commands=['remove'])
@@ -41,8 +33,18 @@ def register_commands(bot: TeleBot):
         if len(parts) < 2:
             bot.reply_to(msg, escape_markdown("Usage: /remove <rss_url>", version=2))
             return
-        remove_feed(parts[1].strip())
-        bot.reply_to(msg, escape_markdown("🗑️ Feed removed.", version=2))
+        feed_url = parts[1].strip()
+
+        try:
+            remove_feed(feed_url)
+            # If successful, notify the owner privately
+            bot.send_message(OWNER_ID, f"✅ Feed has been successfully removed: {feed_url}")
+            bot.reply_to(msg, escape_markdown("🗑️ Feed removed successfully.", version=2))
+
+        except Exception as e:
+            # If there is an error, notify the owner privately
+            bot.send_message(OWNER_ID, f"❌ Failed to remove feed: {feed_url}. Error: {str(e)}")
+            bot.reply_to(msg, escape_markdown(f"❌ Feed could not be removed. Error: {str(e)}", version=2))
 
     @bot.message_handler(commands=['feeds'])
     def list_feeds_cmd(msg):

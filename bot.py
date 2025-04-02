@@ -20,6 +20,27 @@ def run_bot(config):
     print("🚀 Bot is running")
     bot.infinity_polling()
 
+@bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
+def on_group_message(msg):
+    # Save the group to the database
+    save_group(msg.chat.id, msg.chat.title, msg.chat.type)
+    
+    # Send a confirmation message to the owner (you)
+    added_message = (
+        f"🆕 New Group Added:\n\n"
+        f"*Title:* {escape_markdown(msg.chat.title, version=2)}\n"
+        f"*Chat ID:* `{msg.chat.id}`\n"
+        f"*Type:* `{msg.chat.type}`"
+    )
+    bot.send_message(OWNER_ID, added_message, parse_mode='MarkdownV2')
+    
+    # Optionally, send a welcome message to the new group
+    welcome_message = (
+        f"Hey! Thanks for adding me to this group. "
+        f"I'll keep you updated with the latest feeds!"
+    )
+    bot.send_message(msg.chat.id, welcome_message)
+
 # Ensure that the bot runs when this file is executed directly
 if __name__ == "__main__":
     run_bot(config)  # This passes the imported config to the function

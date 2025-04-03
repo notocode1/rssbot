@@ -1,18 +1,17 @@
-from config import OWNER_ID  # Import OWNER_ID from config
 import time
 import telebot
-from config import BOT_TOKEN  # Make sure this import is here
+from config import BOT_TOKEN, OWNER_ID  # Import the bot token and OWNER_ID
 from db import init_db, save_group, get_last_seen_time
-from commands import register_commands  # Ensure commands are being registered
 from feeds import start_feed_loop
-import config  # Add this line to import the config
-from utils import escape_markdown  # Make sure escape_markdown is imported
+import config
+from utils import escape_markdown
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MarkdownV2')
 
+# Only process group messages to add the group to the database
 @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
 def on_group_message(msg):
-    # Save the group to the database
+    # Save the group to the database (no need to check sender, just process the message)
     save_group(msg.chat.id, msg.chat.title, msg.chat.type)
     
     # Send a confirmation message to the owner (you) privately
@@ -24,21 +23,13 @@ def on_group_message(msg):
     )
     bot.send_message(OWNER_ID, added_message, parse_mode='MarkdownV2')
     
-    # Optionally, send a welcome message to the new group
-    welcome_message = (
-        f"Hey! Thanks for adding me to this group. "
-        f"I'll keep you updated with the latest feeds!"
-    )
-    bot.send_message(msg.chat.id, welcome_message)
-
-def run_bot(config):
-    init_db()
+def run_bot():
+    init_db()  # Initialize the database
     start_time = get_last_seen_time() or time.time()
-    register_commands(bot)  # Register commands here
-    start_feed_loop(bot, start_time)
+    start_feed_loop(bot, start_time)  # Start processing feeds
     print("🚀 Bot is running")
-    bot.infinity_polling()
+    bot.infinity_polling()  # Start polling for updates
 
 # Ensure that the bot runs when this file is executed directly
 if __name__ == "__main__":
-    run_bot(config)  # This passes the imported config to the function
+    run_bot()

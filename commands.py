@@ -60,10 +60,7 @@ def register_commands(bot: TeleBot, bot_id: str):
         try:
             groups = get_groups(bot_id)
             feeds = get_feeds(bot_id)
-            text = (
-                f"📈 *Bot Stats:*
-\n*Groups:* {len(groups)}\n*Feeds:* {len(feeds)}"
-            )
+            text = f"📈 *Bot Stats:*\n*Groups:* {len(groups)}\n*Feeds:* {len(feeds)}"
             bot.send_message(msg.chat.id, escape_markdown(text, version=2))
         except Exception as e:
             bot.send_message(msg.chat.id, escape_markdown(f"❌ Error:\n{e}", version=2))

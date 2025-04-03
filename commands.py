@@ -5,10 +5,13 @@ from utils import escape_markdown
 
 def register_commands(bot: TeleBot):
 
-    @bot.message_handler(commands=['alive'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
+    @bot.message_handler(commands=['alive'])
     def alive_cmd(msg):
-        print("✅ /alive command triggered")
-        bot.reply_to(msg, escape_markdown("I'm alive and running!", version=2))
+        print(f"⚡ /alive hit by user: {msg.from_user.id} | chat_type: {msg.chat.type}")
+        if msg.from_user.id == OWNER_ID and msg.chat.type == 'private':
+            bot.reply_to(msg, escape_markdown("✅ I'm alive and you're the boss!", version=2))
+        else:
+            bot.reply_to(msg, escape_markdown("❌ You're not the owner.", version=2))
 
     @bot.message_handler(commands=['add'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def add_feed_cmd(msg):

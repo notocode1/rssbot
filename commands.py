@@ -4,6 +4,7 @@ from db import add_feed, remove_feed, get_feeds
 from utils import escape_markdown
 
 def register_commands(bot: TeleBot):
+    bot_id = str(bot.token.split(":")[0])  # ← grab bot ID here
 
     @bot.message_handler(commands=['alive'])
     def alive_cmd(msg):
@@ -22,7 +23,7 @@ def register_commands(bot: TeleBot):
             return
         feed_url = parts[1].strip()
         try:
-            add_feed(feed_url)
+            add_feed(bot_id, feed_url)  # ✅ now passing bot_id
             bot.send_message(OWNER_ID, escape_markdown(f"✅ Feed added: {feed_url}", version=2))
         except Exception as e:
             bot.send_message(OWNER_ID, escape_markdown(f"❌ Error adding feed: {e}", version=2))
@@ -36,7 +37,7 @@ def register_commands(bot: TeleBot):
             return
         feed_url = parts[1].strip()
         try:
-            remove_feed(feed_url)
+            remove_feed(bot_id, feed_url)
             bot.send_message(OWNER_ID, escape_markdown(f"✅ Feed removed: {feed_url}", version=2))
         except Exception as e:
             bot.send_message(OWNER_ID, escape_markdown(f"❌ Error removing feed: {e}", version=2))
@@ -44,9 +45,12 @@ def register_commands(bot: TeleBot):
     @bot.message_handler(commands=['feeds'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def list_feeds_cmd(msg):
         print("📋 /feeds command triggered")
-        feeds = get_feeds()
-        if not feeds:
-            bot.reply_to(msg, escape_markdown("No feeds found", version=2))
-        else:
-            feed_list = "\n".join([escape_markdown(url, version=2) for url in feeds])
-            bot.send_message(msg.chat.id, feed_list, disable_web_page_preview=True)
+        try:
+            feeds = get_feeds(bot_id)
+            if not feeds:
+                bot.reply_to(msg, escape_markdown("No feeds found", version=2))
+            else:
+                feed_list = "\n".join([escape_markdown(url, version=2) for url in feeds])
+                bot.send_message(msg.chat.id, feed_list, disable_web_page_preview=True)
+        except Exception as e:
+            bot.send_message(msg.chat.id, escape_markdown(f"❌ Error: {e}", version=2))

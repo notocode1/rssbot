@@ -1,12 +1,13 @@
-from config import OWNER_ID
+from config import OWNER_ID  # Import OWNER_ID from config
 from telebot import TeleBot
 from db import add_feed, remove_feed, get_feeds, get_groups
 from utils import escape_markdown
 
 def register_commands(bot: TeleBot):
-    @bot.message_handler(commands=['add'])
+    # Handle /add command - Only for the owner in private messages
+    @bot.message_handler(commands=['add'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def add_feed_cmd(msg):
-        if msg.from_user.id != OWNER_ID: return
+        print(f"Received /add command: {msg.text}")  # Debug line to check if the command is received
         parts = msg.text.split(" ", 1)
         if len(parts) < 2:
             bot.reply_to(msg, escape_markdown("Usage: /add <rss_url>", version=2))
@@ -14,21 +15,19 @@ def register_commands(bot: TeleBot):
         
         feed_url = parts[1].strip()
 
-        # Try adding the feed
         try:
             add_feed(feed_url)
-            # If successful, notify the owner privately
             bot.send_message(OWNER_ID, f"✅ A new feed has been successfully added: {feed_url}")
             bot.reply_to(msg, escape_markdown("✅ Feed added successfully.", version=2))
 
         except Exception as e:
-            # If there is an error, notify the owner privately
             bot.send_message(OWNER_ID, f"❌ Failed to add feed: {feed_url}. Error: {str(e)}")
             bot.reply_to(msg, escape_markdown(f"❌ Feed could not be added. Error: {str(e)}", version=2))
 
-    @bot.message_handler(commands=['remove'])
+    # Handle /remove command - Only for the owner in private messages
+    @bot.message_handler(commands=['remove'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def remove_feed_cmd(msg):
-        if msg.from_user.id != OWNER_ID: return
+        print(f"Received /remove command: {msg.text}")  # Debug line to check if the command is received
         parts = msg.text.split(" ", 1)
         if len(parts) < 2:
             bot.reply_to(msg, escape_markdown("Usage: /remove <rss_url>", version=2))
@@ -37,18 +36,17 @@ def register_commands(bot: TeleBot):
 
         try:
             remove_feed(feed_url)
-            # If successful, notify the owner privately
             bot.send_message(OWNER_ID, f"✅ Feed has been successfully removed: {feed_url}")
             bot.reply_to(msg, escape_markdown("🗑️ Feed removed successfully.", version=2))
 
         except Exception as e:
-            # If there is an error, notify the owner privately
             bot.send_message(OWNER_ID, f"❌ Failed to remove feed: {feed_url}. Error: {str(e)}")
             bot.reply_to(msg, escape_markdown(f"❌ Feed could not be removed. Error: {str(e)}", version=2))
 
-    @bot.message_handler(commands=['feeds'])
+    # Handle /feeds command - Only for the owner in private messages
+    @bot.message_handler(commands=['feeds'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def list_feeds_cmd(msg):
-        if msg.from_user.id != OWNER_ID: return
+        print(f"Received /feeds command: {msg.text}")  # Debug line to check if the command is received
         feeds = get_feeds()
         if not feeds:
             bot.reply_to(msg, escape_markdown("No feeds found.", version=2))
@@ -56,14 +54,16 @@ def register_commands(bot: TeleBot):
             feed_list = "\n".join([escape_markdown(url, version=2) for url in feeds])
             bot.send_message(msg.chat.id, feed_list, disable_web_page_preview=True)
 
-    @bot.message_handler(commands=['alive'])
+    # Handle /alive command - Only for the owner in private messages
+    @bot.message_handler(commands=['alive'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def alive_cmd(msg):
-        if msg.from_user.id != OWNER_ID: return
+        print(f"Received /alive command: {msg.text}")  # Debug line to check if the command is received
         bot.send_message(msg.chat.id, escape_markdown("✅ Bot is alive.", version=2))
 
-    @bot.message_handler(commands=['stats'])
+    # Handle /stats command - Only for the owner in private messages
+    @bot.message_handler(commands=['stats'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def stats_cmd(msg):
-        if msg.from_user.id != OWNER_ID: return
+        print(f"Received /stats command: {msg.text}")  # Debug line to check if the command is received
         groups = len(get_groups())
         feeds = len(get_feeds())
         stats_text = (
@@ -73,9 +73,10 @@ def register_commands(bot: TeleBot):
         )
         bot.send_message(msg.chat.id, stats_text, parse_mode='MarkdownV2')
 
-    @bot.message_handler(commands=['broadcast'])
+    # Handle /broadcast command - Only for the owner in private messages
+    @bot.message_handler(commands=['broadcast'], func=lambda msg: msg.from_user.id == OWNER_ID and msg.chat.type == 'private')
     def broadcast_cmd(msg):
-        if msg.from_user.id != OWNER_ID: return
+        print(f"Received /broadcast command: {msg.text}")  # Debug line to check if the command is received
         parts = msg.text.split(" ", 1)
         if len(parts) < 2:
             bot.reply_to(msg, escape_markdown("Usage: /broadcast <message>", version=2))

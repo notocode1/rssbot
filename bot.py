@@ -4,8 +4,6 @@ from config import BOT_TOKEN, OWNER_ID
 from db import init_db, save_group, get_last_seen_time, is_group_saved
 from feeds import start_feed_loop
 from commands import register_commands
-import config
-import db  # needed for command registration
 from utils import escape_markdown
 
 print("⚙️ bot.py is starting...")
@@ -30,7 +28,7 @@ def on_group_message(msg):
 def run_bot():
     try:
         init_db()
-        register_commands(bot, db)
+        register_commands(bot)  # ✅ FIXED: no db passed here
         start_time = get_last_seen_time() or time.time()
         print("✅ Commands registered. Starting feed loop...")
         start_feed_loop(bot, start_time)

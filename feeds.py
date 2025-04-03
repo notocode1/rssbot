@@ -1,3 +1,4 @@
+from config import OWNER_ID
 import time
 import feedparser
 from db import get_feeds, get_groups, is_seen, mark_seen

@@ -1,65 +1,68 @@
-from config import OWNER_ID
 import time
 import feedparser
 from db import get_feeds, get_groups, is_seen, mark_seen
-from utils import escape_markdown, extract_image
-from config import CHECK_INTERVAL, MAX_ENTRIES, MAX_TEXT_LENGTH
-from urllib.parse import urlparse
+from utils import escape_markdown
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
-def start_feed_loop(bot, start_time):
-    def loop():
-        while True:
-            try:
-                feeds = get_feeds()
-                for url in feeds:
-                    try:
-                        feed = feedparser.parse(url)
-                        posts_count = 0
-                        for entry in feed.entries[:MAX_ENTRIES]:
-                            if posts_count >= 3:
-                                break  # Limit to 3 posts per feed
+MAX_ENTRIES = 5
+MAX_TEXT_LENGTH = 4000
+CHECK_INTERVAL = 60
 
-                            link = entry.get('link')
-                            if not link or is_seen(link):
-                                continue
+def extract_image(entry):
+    if 'media_content' in entry and entry.media_content:
+        url = entry.media_content[0].get('url')
+        if url and url.lower().endswith(('jpg', 'jpeg', 'png', 'gif')):
+            return url
+    if 'links' in entry:
+        for link in entry.links:
+            if link.get('type', '').startswith('image'):
+                return link.get('href')
+    soup = BeautifulSoup(entry.get('summary', ''), 'html.parser')
+    img = soup.find('img')
+    if img and img.get('src') and img['src'].lower().endswith(('jpg', 'jpeg', 'png', 'gif')):
+        return img['src']
+    return None
 
-                            # Check if the published time is older than start_time
-                            published_time = time.mktime(entry.published_parsed) if 'published_parsed' in entry else None
-                            if published_time and published_time < start_time:
-                                continue
+def start_feed_loop(bot, bot_id, start_time):
+    while True:
+        try:
+            feeds = get_feeds(bot_id)
+            for url in feeds:
+                try:
+                    feed = feedparser.parse(url)
+                    for entry in feed.entries[:MAX_ENTRIES]:
+                        entry_time = time.mktime(entry.published_parsed) if 'published_parsed' in entry else None
+                        if entry_time and entry_time < start_time:
+                            continue  # Skip old posts
 
-                            mark_seen(link)
-                            title = escape_markdown(entry.get('title', 'No title'))
-                            summary = escape_markdown(BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text())
-                            source = escape_markdown(urlparse(link).netloc.replace('www.', '').split('.')[0].capitalize())
-                            image_url = extract_image(entry)
-                            text = f"📰 *{source}*\n\n*{title}*\n\n{summary}\n\n[Read more]({link})"
+                        link = entry.get('link')
+                        if not link or is_seen(bot_id, link):
+                            continue
+                        mark_seen(bot_id, link)
 
-                            # SKIP: No image
-                            if not image_url:
-                                continue
+                        title = escape_markdown(entry.get('title', 'No title'), version=2)
+                        summary = escape_markdown(BeautifulSoup(entry.get('summary', ''), 'html.parser').get_text(), version=2)
+                        source = escape_markdown(urlparse(link).netloc.replace('www.', '').split('.')[0].capitalize(), version=2)
+                        image_url = extract_image(entry)
 
-                            # SKIP: Caption too long for photo
-                            if len(text) > 1024:
-                                continue
+                        text = f"\U0001F4F0 *{source}*\n\n*{title}*"
+                        if summary and len(f"{text}\n\n{summary}\n\n[Read more]({link})") <= MAX_TEXT_LENGTH:
+                            text += f"\n\n{summary}\n\n[Read more]({escape_markdown(link, version=2)})"
+                        else:
+                            text += f"\n\n[Read more]({escape_markdown(link, version=2)})"
 
-                            for chat_id in get_groups():
-                                try:
-                                    bot.send_photo(chat_id, image_url, caption=text)
-                                except Exception as e:
-                                    print(f"Error posting to chat {chat_id}: {e}")
-
-                            posts_count += 1
-                    except Exception as e:
-                        # Report the error to the owner privately
-                        bot.send_message(OWNER_ID, f"❌ Failed to process feed from {url}. Error: {str(e)}")
-                        print(f"Error processing feed {url}: {e}")
-
-                # Wait for 1 hour before checking again
-                time.sleep(3600)
-            except Exception as e:
-                bot.send_message(OWNER_ID, f"❌ Error in feed loop: {str(e)}")
-                print(f"Error in feed loop: {e}")
-                time.sleep(3600)  # Wait for 1 hour in case of an error
-    loop()
+                        for chat_id in get_groups(bot_id):
+                            try:
+                                if image_url:
+                                    bot.send_photo(chat_id, image_url, caption=text, parse_mode='MarkdownV2')
+                                else:
+                                    bot.send_message(chat_id, text, parse_mode='MarkdownV2', disable_web_page_preview=False)
+                                time.sleep(0.5)
+                            except Exception as e:
+                                print(f"Telegram send error in chat {chat_id}: {e}")
+                except Exception as e:
+                    print(f"Feed error from {url}: {e}")
+        except Exception as e:
+            print(f"Feed loop error: {e}")
+        time.sleep(CHECK_INTERVAL)

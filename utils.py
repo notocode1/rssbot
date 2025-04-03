@@ -7,7 +7,7 @@ def escape_markdown(text: str, version: int = 2) -> str:
         return ''
     if version == 2:
         escape_chars = r'_*[]()~`>#+-=|{}.!'
-        return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
+        return re.sub(f'([{re.escape(escape_chars)}])', r'\\\\\\1', text)
     return text
 
 def extract_image(entry):

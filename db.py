@@ -81,3 +81,9 @@ def get_last_seen_time(conn):
     cur.execute("SELECT MAX(date_added) FROM seen_links WHERE bot_id = %s", (BOT_ID,))
     result = cur.fetchone()
     return result[0].timestamp() if result and result[0] else None
+
+@with_db
+def is_group_saved(conn, chat_id) -> bool:
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM groups WHERE bot_id = %s AND chat_id = %s", (BOT_ID, chat_id))
+    return cur.fetchone() is not None

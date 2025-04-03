@@ -1,6 +1,6 @@
 import time
 import telebot
-from config import BOT_TOKEN, OWNER_ID  # Import the bot token and OWNER_ID
+from config import BOT_TOKEN, OWNER_ID
 from db import init_db, save_group, get_last_seen_time
 from feeds import start_feed_loop
 import config
@@ -8,14 +8,11 @@ from utils import escape_markdown
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='MarkdownV2')
 
-# Only process group messages to add the group to the database
 @bot.message_handler(func=lambda msg: msg.chat.type in ['group', 'supergroup'])
 def on_group_message(msg):
     try:
-        # Save the group to the database (no need to check sender, just process the message)
+        # Save the group to the database
         save_group(msg.chat.id, msg.chat.title, msg.chat.type)
-        
-        # Send a confirmation message to the owner (you) privately
         added_message = (
             f"🆕 New Group Added:\n\n"
             f"*Title:* {escape_markdown(msg.chat.title, version=2)}\n"

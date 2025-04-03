@@ -1,3 +1,4 @@
+from config import OWNER_ID  # Import OWNER_ID from config
 import time
 import telebot
 from config import BOT_TOKEN  # Make sure this import is here

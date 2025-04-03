@@ -3,7 +3,6 @@ import telebot
 from config import BOT_TOKEN, OWNER_ID
 from db import init_db, save_group, get_last_seen_time, is_group_saved
 from feeds import start_feed_loop
-from commands import register_commands
 from utils import escape_markdown
 
 print("⚙️ bot.py is starting...")

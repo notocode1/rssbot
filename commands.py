@@ -2,7 +2,6 @@
 
 from aiogram import Router, types
 from aiogram.types import Message
-from aiogram.filters import Command
 from config import OWNER_ID, BOT_TOKEN
 from db import add_feed, remove_feed, get_feeds, get_groups
 from utils import escape_markdown
@@ -19,7 +18,7 @@ def is_owner(msg: Message) -> bool:
     return result
 
 # /add <rss_url>
-@router.message(Command("add"))
+@router.message(lambda msg: msg.text and msg.text.startswith("/add"))
 async def cmd_add(msg: Message):
     print("[DEBUG] /add full message:")
     print(msg.model_dump_json(indent=2))
@@ -45,7 +44,7 @@ async def cmd_add(msg: Message):
     await msg.reply("✅ Feed added successfully.")
 
 # /remove <rss_url>
-@router.message(Command("remove"))
+@router.message(lambda msg: msg.text and msg.text.startswith("/remove"))
 async def cmd_remove(msg: Message):
     print("[DEBUG] /remove full message:")
     print(msg.model_dump_json(indent=2))
@@ -62,7 +61,7 @@ async def cmd_remove(msg: Message):
     await msg.reply("🗑️ Feed removed successfully.")
 
 # /feeds
-@router.message(Command("feeds"))
+@router.message(lambda msg: msg.text and msg.text.startswith("/feeds"))
 async def cmd_feeds(msg: Message):
     print("[DEBUG] /feeds full message:")
     print(msg.model_dump_json(indent=2))
@@ -77,7 +76,7 @@ async def cmd_feeds(msg: Message):
         await msg.answer(text, disable_web_page_preview=True)
 
 # /alive
-@router.message(Command("alive"))
+@router.message(lambda msg: msg.text and msg.text.startswith("/alive"))
 async def cmd_alive(msg: Message):
     print("[DEBUG] /alive full message:")
     print(msg.model_dump_json(indent=2))
@@ -86,7 +85,7 @@ async def cmd_alive(msg: Message):
     await msg.reply("✅ Bot is alive and running.")
 
 # /stats
-@router.message(Command("stats"))
+@router.message(lambda msg: msg.text and msg.text.startswith("/stats"))
 async def cmd_stats(msg: Message):
     print("[DEBUG] /stats full message:")
     print(msg.model_dump_json(indent=2))
@@ -104,7 +103,7 @@ async def cmd_stats(msg: Message):
     await msg.answer(escape_markdown(text), parse_mode="MarkdownV2")
 
 # /broadcast <message>
-@router.message(Command("broadcast"))
+@router.message(lambda msg: msg.text and msg.text.startswith("/broadcast"))
 async def cmd_broadcast(msg: Message):
     print("[DEBUG] /broadcast full message:")
     print(msg.model_dump_json(indent=2))

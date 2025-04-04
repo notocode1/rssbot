@@ -1,7 +1,5 @@
 # main.py
 
-print("[DEBUG] Commands router loaded ✅")
-
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
@@ -10,6 +8,7 @@ from db import init_db
 from loop import run_feed_loop
 from group import router as group_router
 from commands import router as command_router
+print("[DEBUG] Commands router loaded ✅")
 
 # Setup logging (Railway console will show this)
 logging.basicConfig(level=logging.INFO)

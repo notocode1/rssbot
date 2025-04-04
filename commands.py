@@ -8,6 +8,7 @@ from utils import escape_markdown
 import feedparser
 
 router = Router()
+print("[DEBUG] 🔥 Commands.py is LIVE")
 
 bot_id = BOT_TOKEN.split(":")[0]
 

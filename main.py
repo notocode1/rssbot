@@ -8,7 +8,6 @@ from db import init_db
 from loop import run_feed_loop
 from group import router as group_router
 from commands import router as command_router
-print("[DEBUG] Commands router loaded ✅")
 
 # Setup logging (Railway console will show this)
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +25,7 @@ dp = Dispatcher()
 # Register routers
 dp.include_router(group_router)
 dp.include_router(command_router)
+print("[DEBUG] ✅ Command router successfully registered.")
 
 async def main():
     # Init DB tables

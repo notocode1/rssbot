@@ -13,7 +13,10 @@ router = Router()
 bot_id = BOT_TOKEN.split(":")[0]
 
 def is_owner(msg: Message) -> bool:
-    return msg.from_user.id == OWNER_ID and msg.chat.type == "private"
+    result = msg.from_user.id == OWNER_ID and msg.chat.type == "private"
+    if not result:
+        print(f"[DENIED] User {msg.from_user.id} in chat {msg.chat.type} is NOT allowed.")
+    return result
 
 # /add <rss_url>
 @router.message(Command("add"))
@@ -79,7 +82,6 @@ async def cmd_alive(msg: Message):
     print("[DEBUG] /alive full message:")
     print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
-        print(f"[DENIED] Not the owner or not in private: {msg.from_user.id}")
         return
     await msg.reply("✅ Bot is alive and running.")
 

@@ -9,7 +9,12 @@ from config import CHECK_INTERVAL, MAX_ENTRIES, MAX_TEXT_LENGTH, BOT_TOKEN
 from db import get_feeds, get_groups, is_seen, mark_seen
 from utils import escape_markdown, extract_image, clean_html
 
-bot = Bot(token=BOT_TOKEN, parse_mode="MarkdownV2")
+from aiogram.client.default import DefaultBotProperties
+
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode="MarkdownV2")
+)
 
 # Track when bot starts (only post articles published after this)
 start_time = time.time()

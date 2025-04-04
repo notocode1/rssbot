@@ -8,6 +8,7 @@ from db import init_db
 from loop import run_feed_loop
 from group import router as group_router
 from commands import router as command_router
+from aiogram.types import Update
 
 # Setup logging (Railway console will show this)
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +22,12 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode="MarkdownV2")
 )
 dp = Dispatcher()
+
+# Spy on all incoming updates
+@dp.update()
+async def spy_all_updates(update: Update):
+    print("[SPY] Raw update received:")
+    print(update.model_dump_json(indent=2))
 
 # Register routers
 dp.include_router(group_router)

@@ -15,7 +15,7 @@ def is_owner(msg: Message) -> bool:
     return msg.from_user.id == OWNER_ID and msg.chat.type == "private"
 
 # /add <rss_url>
-@router.message(lambda msg: msg.text.startswith("/add"))
+@router.message(commands=["add"])
 async def cmd_add(msg: Message):
     if not is_owner(msg):
         return
@@ -39,7 +39,7 @@ async def cmd_add(msg: Message):
     await msg.reply("✅ Feed added successfully.")
 
 # /remove <rss_url>
-@router.message(lambda msg: msg.text.startswith("/remove"))
+@router.message(commands=["remove"])
 async def cmd_remove(msg: Message):
     if not is_owner(msg):
         return
@@ -54,7 +54,7 @@ async def cmd_remove(msg: Message):
     await msg.reply("🗑️ Feed removed successfully.")
 
 # /feeds
-@router.message(lambda msg: msg.text == "/feeds")
+@router.message(commands=["feeds"])
 async def cmd_feeds(msg: Message):
     if not is_owner(msg):
         return
@@ -67,7 +67,7 @@ async def cmd_feeds(msg: Message):
         await msg.answer(text, disable_web_page_preview=True)
 
 # /alive
-@router.message(lambda msg: msg.text == "/alive")
+@router.message(commands=["alive"])
 async def cmd_alive(msg: Message):
     print(f"[DEBUG] /alive called by user ID: {msg.from_user.id} in chat: {msg.chat.type}")
     if not is_owner(msg):
@@ -76,7 +76,7 @@ async def cmd_alive(msg: Message):
     await msg.reply("✅ Bot is alive and running.")
 
 # /stats
-@router.message(lambda msg: msg.text == "/stats")
+@router.message(commands=["stats"])
 async def cmd_stats(msg: Message):
     if not is_owner(msg):
         return
@@ -87,12 +87,12 @@ async def cmd_stats(msg: Message):
     text = (
         f"📊 *Bot Stats*\n\n"
         f"👥 Groups: *{groups}*\n"
-        f"📡 Feeds: *{feeds}*"
+        f"🛱 Feeds: *{feeds}*"
     )
     await msg.answer(escape_markdown(text), parse_mode="MarkdownV2")
 
 # /broadcast <message>
-@router.message(lambda msg: msg.text.startswith("/broadcast"))
+@router.message(commands=["broadcast"])
 async def cmd_broadcast(msg: Message):
     if not is_owner(msg):
         return

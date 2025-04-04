@@ -14,7 +14,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Init bot + dispatcher
-bot = Bot(token=BOT_TOKEN, parse_mode="MarkdownV2")
+from aiogram.client.default import DefaultBotProperties
+
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode="MarkdownV2")
+)
 dp = Dispatcher()
 
 # Register routers

@@ -2,9 +2,9 @@
 
 import os
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "7645110484:AAFzTPA1T6SoNjUgevx8T_1IIP2NAq3810A")
 OWNER_ID = int(os.getenv("OWNER_ID", "6478535414"))
-DB_URL = os.getenv("DATABASE_URL", "YOUR_DATABASE_URL_HERE")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://Beon_owner:npg_sYXn3CLrKA4N@ep-shy-recipe-a5azsc70-pooler.us-east-2.aws.neon.tech/Beon?sslmode=require")
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", 180))  # default 3 mins
 MAX_ENTRIES = 5
 MAX_TEXT_LENGTH = 4000

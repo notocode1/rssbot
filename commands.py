@@ -18,6 +18,8 @@ def is_owner(msg: Message) -> bool:
 # /add <rss_url>
 @router.message(Command("add"))
 async def cmd_add(msg: Message):
+    print("[DEBUG] /add full message:")
+    print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
         return
 
@@ -42,6 +44,8 @@ async def cmd_add(msg: Message):
 # /remove <rss_url>
 @router.message(Command("remove"))
 async def cmd_remove(msg: Message):
+    print("[DEBUG] /remove full message:")
+    print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
         return
 
@@ -57,6 +61,8 @@ async def cmd_remove(msg: Message):
 # /feeds
 @router.message(Command("feeds"))
 async def cmd_feeds(msg: Message):
+    print("[DEBUG] /feeds full message:")
+    print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
         return
 
@@ -70,7 +76,8 @@ async def cmd_feeds(msg: Message):
 # /alive
 @router.message(Command("alive"))
 async def cmd_alive(msg: Message):
-    print(f"[DEBUG] /alive called by user ID: {msg.from_user.id} in chat: {msg.chat.type}")
+    print("[DEBUG] /alive full message:")
+    print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
         print(f"[DENIED] Not the owner or not in private: {msg.from_user.id}")
         return
@@ -79,6 +86,8 @@ async def cmd_alive(msg: Message):
 # /stats
 @router.message(Command("stats"))
 async def cmd_stats(msg: Message):
+    print("[DEBUG] /stats full message:")
+    print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
         return
 
@@ -95,6 +104,8 @@ async def cmd_stats(msg: Message):
 # /broadcast <message>
 @router.message(Command("broadcast"))
 async def cmd_broadcast(msg: Message):
+    print("[DEBUG] /broadcast full message:")
+    print(msg.model_dump_json(indent=2))
     if not is_owner(msg):
         return
 
@@ -119,4 +130,5 @@ async def cmd_broadcast(msg: Message):
 # Fallback debug logger — catches everything else
 @router.message()
 async def debug_catch_all(msg: Message):
-    print(f"[DEBUG] Unknown message from {msg.from_user.id} in {msg.chat.type}: {msg.text}")
+    print("[DEBUG] Unknown message full dump:")
+    print(msg.model_dump_json(indent=2))

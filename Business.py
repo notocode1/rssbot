@@ -13,9 +13,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
 # ====== CONFIG ======
-BOT_TOKEN = "7645110484:AAHBmNrLChJSdAJTypB6Sz7KWuesAFC_HtQ"
+BOT_TOKEN = "7645110484:AAFzTPA1T6SoNjUgevx8T_1IIP2NAq3810A"
 OWNER_ID = 6478535414
-DB_URL = "postgresql://neondb_owner:npg_1ca4JbmBQkFs@ep-black-hill-a5q282lu-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DB_URL = "postgresql://Beon_owner:npg_sYXn3CLrKA4N@ep-shy-recipe-a5azsc70-pooler.us-east-2.aws.neon.tech/Beon?sslmode=require"
 CHECK_INTERVAL = 60
 MAX_ENTRIES = 5
 MAX_TEXT_LENGTH = 4000

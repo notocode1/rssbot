@@ -11,9 +11,8 @@ router = Router()
 
 bot_id = BOT_TOKEN.split(":")[0]
 
-# Utility to check if sender is the owner
 def is_owner(msg: Message) -> bool:
-    return msg.from_user.id == OWNER_ID
+    return msg.from_user.id == OWNER_ID and msg.chat.type == "private"
 
 # /add <rss_url>
 @router.message(lambda msg: msg.text.startswith("/add"))
@@ -67,15 +66,13 @@ async def cmd_feeds(msg: Message):
         text = "\n".join([escape_markdown(url) for url in feeds])
         await msg.answer(text, disable_web_page_preview=True)
 
-# /alive (debug mode)
+# /alive
 @router.message(lambda msg: msg.text == "/alive")
 async def cmd_alive(msg: Message):
-    print(f"[DEBUG] /alive called by user ID: {msg.from_user.id}")
-
+    print(f"[DEBUG] /alive called by user ID: {msg.from_user.id} in chat: {msg.chat.type}")
     if not is_owner(msg):
-        print(f"[DENIED] Not the owner: {msg.from_user.id}")
+        print(f"[DENIED] Not the owner or not in private: {msg.from_user.id}")
         return
-
     await msg.reply("✅ Bot is alive and running.")
 
 # /stats
@@ -117,3 +114,8 @@ async def cmd_broadcast(msg: Message):
             print(f"[BROADCAST ERROR] {chat_id}: {e}")
 
     await msg.reply(f"📢 Message sent to {count} groups.")
+
+# Fallback debug logger — catches everything else
+@router.message()
+async def debug_catch_all(msg: Message):
+    print(f"[DEBUG] Unknown message from {msg.from_user.id} in {msg.chat.type}: {msg.text}")

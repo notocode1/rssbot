@@ -67,10 +67,13 @@ async def cmd_feeds(msg: Message):
         text = "\n".join([escape_markdown(url) for url in feeds])
         await msg.answer(text, disable_web_page_preview=True)
 
-# /alive
+# /alive (debug mode)
 @router.message(lambda msg: msg.text == "/alive")
 async def cmd_alive(msg: Message):
+    print(f"[DEBUG] /alive called by user ID: {msg.from_user.id}")
+
     if not is_owner(msg):
+        print(f"[DENIED] Not the owner: {msg.from_user.id}")
         return
 
     await msg.reply("✅ Bot is alive and running.")

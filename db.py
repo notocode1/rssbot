@@ -3,20 +3,27 @@
 import psycopg2
 import psycopg2.pool
 from typing import List
-
 from config import DB_URL
 
-# Create connection pool
+# Connection Pool (works with multiple bots)
 db_pool = psycopg2.pool.ThreadedConnectionPool(minconn=1, maxconn=20, dsn=DB_URL)
 
+# Safer connection decorator
 def with_db(func):
     def wrapper(*args, **kwargs):
-        conn = db_pool.getconn()
         try:
+            conn = db_pool.getconn()
             result = func(conn, *args, **kwargs)
             return result
+        except Exception as e:
+            print(f"[DB ERROR] {e}")
+            raise
         finally:
-            db_pool.putconn(conn)
+            if 'conn' in locals():
+                try:
+                    db_pool.putconn(conn)
+                except Exception as e:
+                    print(f"[DB RETURN ERROR] {e}")
     return wrapper
 
 @with_db
